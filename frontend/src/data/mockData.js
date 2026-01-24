@@ -44,31 +44,69 @@ export const mockFlashcards = [
   {
     id: 1,
     question: "Which category did you overspend on last month?",
-    answer: "Food Delivery ($310) - that's 44% of your discretionary spending!",
-    answered: false
+    options: [
+      "Coffee",
+      "Food Delivery",
+      "Subscriptions",
+      "Groceries"
+    ],
+    correctAnswer: 1, // Index of correct answer (Food Delivery)
+    explanation: "Food Delivery ($310) - that's 44% of your discretionary spending!",
+    answered: false,
+    userAnswer: null
   },
   {
     id: 2,
     question: "If you cut coffee spending by 20%, how much would you save per month?",
-    answer: "About $28/month or $336/year!",
-    answered: false
+    options: [
+      "$15",
+      "$28",
+      "$35",
+      "$42"
+    ],
+    correctAnswer: 1, // $28
+    explanation: "About $28/month or $336/year! Your current coffee spending is $142/month.",
+    answered: false,
+    userAnswer: null
   },
   {
     id: 3,
     question: "True or False: Subscriptions are your #1 silent expense",
-    answer: "False! Food delivery costs you 3.5x more than all subscriptions combined.",
-    answered: false
+    options: [
+      "True",
+      "False"
+    ],
+    correctAnswer: 1, // False
+    explanation: "False! Food delivery costs you 3.5x more than all subscriptions combined.",
+    answered: false,
+    userAnswer: null
   },
   {
     id: 4,
     question: "How much did micro-roundups save you this week?",
-    answer: "$12.84 - completely invisible savings!",
-    answered: false
+    options: [
+      "$5.50",
+      "$8.75",
+      "$12.84",
+      "$15.20"
+    ],
+    correctAnswer: 2, // $12.84
+    explanation: "$12.84 - completely invisible savings without you even noticing!",
+    answered: false,
+    userAnswer: null
   },
   {
     id: 5,
-    question: "What's one habit you can change this week to save money?",
-    answer: "Try cooking at home twice instead of ordering delivery. Start small!",
-    answered: false
+    question: "What's the best first step to save money this week?",
+    options: [
+      "Cancel all subscriptions",
+      "Cook at home twice instead of ordering",
+      "Stop buying coffee completely",
+      "Switch banks"
+    ],
+    correctAnswer: 1, // Cook at home twice
+    explanation: "Try cooking at home twice instead of ordering delivery. Start small and build sustainable habits!",
+    answered: false,
+    userAnswer: null
   }
 ];

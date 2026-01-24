@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Header from '../components/Header';
 import SpendingChart from '../components/SpendingChart';
 import AIInsights from '../components/AIInsights';
+import Flashcard from '../components/Flashcard';
 import { mockUser } from '../data/mockData';
 
 export default function Dashboard() {
@@ -22,16 +23,14 @@ export default function Dashboard() {
             <SpendingChart />
           </div>
 
-          {/* AI Insights - Now functional! */}
+          {/* AI Insights */}
           <div className="col-span-7">
             <AIInsights />
           </div>
 
-          <div className="col-span-12 card">
-            <h2 className="text-lg font-semibold mb-4">🎴 Financial Literacy Flashcard</h2>
-            <div className="h-48 flex items-center justify-center text-gray-500">
-              Flashcard coming in Batch 4
-            </div>
+          {/* Flashcard - Now functional! */}
+          <div className="col-span-12">
+            <Flashcard />
           </div>
 
           <div className="col-span-12 card">
