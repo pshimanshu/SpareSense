@@ -53,8 +53,6 @@ FinWise combines transaction analysis, AI insights, gamification, and micro-savi
 finwise/  
 ├─ backend/ # FastAPI backend (API, AI, savings logic)  
 ├─ frontend/ # React frontend (UI & dashboard)  
-├─ docs/ # Architecture & demo notes (to be added)  
-├─ scripts/ # Utility scripts  
 └─ README.md  
 
 ### Backend Setup
@@ -64,7 +62,6 @@ cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
 uvicorn app.main:app --reload
 ```
 Backend runs at `http://localhost:8000`.
@@ -73,7 +70,6 @@ Backend runs at `http://localhost:8000`.
 ```bash
 cd frontend
 npm install
-cp .env.example .env
 npm run dev
 ```
 Frontend runs at `http://localhost:5173`.
