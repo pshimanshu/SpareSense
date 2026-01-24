@@ -53,7 +53,45 @@ FinWise combines transaction analysis, AI insights, gamification, and micro-savi
 finwise/
 ├─ backend/ # FastAPI backend (API, AI, savings logic)
 ├─ frontend/ # React frontend (UI & dashboard)
-├─ docs/ # Architecture & demo notes (to be added)
-├─ scripts/ # Utility scripts
 └─ README.md
 
+---
+
+## 🤝 AI Data Contracts (DEV 2)
+
+The AI endpoints use a **versioned JSON contract** so the frontend and backend stay in sync and Gemini prompts can be forced to return stable output.
+
+Source of truth (Pydantic models):
+- `backend/app/ai/schemas.py`
+
+Sample JSON payloads (ready to use for mock API calls / frontend dev):
+- `backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json`
+- `backend/app/ai/SampleSchemas/AiSavingsTipsResponse.json`
+- `backend/app/ai/SampleSchemas/AiFlashcardsResponse.json`
+
+### Shared Request Body (input JSON)
+
+Both AI endpoints accept the same request body:
+- `AiSpendingSummaryRequest`
+  - `spending_summary.category_totals`: category totals and counts
+  - `spending_summary.top_merchants`: top merchant totals and counts
+  - Optional enrichments: `silent_spenders`, `recurring_merchants`
+  - `income.monthly_income` + `income.confidence` (0..1)
+  - `constraints.tip_count` (1..10) and `constraints.flashcard_count` (1..20) to control response size
+
+### Savings Tips Response (output JSON)
+
+- `AiSavingsTipsResponse`
+  - `tips[]`: each tip includes `estimated_monthly_savings`, `confidence` (0..1), and an optional `evidence` block + `nudge`
+  - `totals.estimated_monthly_savings_total`: sum of the tip estimates
+
+### Flashcards Response (output JSON)
+
+- `AiFlashcardsResponse`
+  - `flashcards[]`: `type`, `skill`, `question`, `options`, `answer`, `explanation`, and optional `data` for UI context
+
+### Planned AI Endpoints
+
+These are the endpoints the backend will expose for DEV 2:
+- `POST /ai/savings-tips` -> `AiSavingsTipsResponse`
+- `POST /ai/flashcards` -> `AiFlashcardsResponse`
