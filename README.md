@@ -69,6 +69,13 @@ Sample JSON payloads (ready to use for mock API calls / frontend dev):
 - `backend/app/ai/SampleSchemas/AiSavingsTipsResponse.json`
 - `backend/app/ai/SampleSchemas/AiFlashcardsResponse.json`
 
+Prompt templates (used to force Gemini to return contract-valid JSON):
+- `backend/app/ai/prompts/savings_tips.txt`
+- `backend/app/ai/prompts/flashcards.txt`
+
+Deterministic fallbacks (demo-safe responses that always match the contract):
+- `backend/app/ai/fallbacks.py`
+
 ### Shared Request Body (input JSON)
 
 Both AI endpoints accept the same request body:
@@ -95,3 +102,9 @@ Both AI endpoints accept the same request body:
 These are the endpoints the backend will expose for DEV 2:
 - `POST /ai/savings-tips` -> `AiSavingsTipsResponse`
 - `POST /ai/flashcards` -> `AiFlashcardsResponse`
+
+### Demo-Safe Behavior (Fallbacks)
+
+Until Gemini is fully wired, the backend can return deterministic responses that:
+- Always return exactly `constraints.tip_count` tips and `constraints.flashcard_count` flashcards
+- Set `meta.fallback_used = true` and `meta.generated_by = "fallback"`
