@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import Header from '../components/Header';
 import SpendingChart from '../components/SpendingChart';
+import AIInsights from '../components/AIInsights';
 import { mockUser } from '../data/mockData';
 
 export default function Dashboard() {
@@ -16,16 +17,14 @@ export default function Dashboard() {
       
       <main className="max-w-7xl mx-auto px-8 py-8">
         <div className="grid grid-cols-12 gap-6">
-          {/* Spending Chart - Now functional! */}
+          {/* Spending Chart */}
           <div className="col-span-5">
             <SpendingChart />
           </div>
 
-          <div className="col-span-7 card">
-            <h2 className="text-lg font-semibold mb-4">🧠 AI Insights</h2>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              AI insights coming in Batch 3
-            </div>
+          {/* AI Insights - Now functional! */}
+          <div className="col-span-7">
+            <AIInsights />
           </div>
 
           <div className="col-span-12 card">
