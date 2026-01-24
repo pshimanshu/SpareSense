@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Header from '../components/Header';
+import SpendingChart from '../components/SpendingChart';
 import { mockUser } from '../data/mockData';
 
 export default function Dashboard() {
@@ -15,12 +16,9 @@ export default function Dashboard() {
       
       <main className="max-w-7xl mx-auto px-8 py-8">
         <div className="grid grid-cols-12 gap-6">
-          {/* Placeholder sections - we'll build these in next batches */}
-          <div className="col-span-5 card">
-            <h2 className="text-lg font-semibold mb-4">📊 Spending Breakdown</h2>
-            <div className="h-64 flex items-center justify-center text-gray-500">
-              Chart coming in Batch 2
-            </div>
+          {/* Spending Chart - Now functional! */}
+          <div className="col-span-5">
+            <SpendingChart />
           </div>
 
           <div className="col-span-7 card">
