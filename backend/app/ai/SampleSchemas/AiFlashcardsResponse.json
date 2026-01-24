@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "period": { "start_date": "2025-01-01", "end_date": "2025-01-31" },
+  "currency": "USD",
+  "flashcards": [
+    {
+      "id": "card_1",
+      "type": "multiple_choice",
+      "skill": "awareness",
+      "question": "Which category did you spend the most on last month?",
+      "options": ["Coffee", "Food & Drink", "Subscriptions", "Transport"],
+      "answer": "Food & Drink",
+      "explanation": "Food & Drink was your highest category by total spend.",
+      "difficulty": "easy",
+      "data": { "category": "Food & Drink", "amount": 510.25 }
+    },
+    {
+      "id": "card_2",
+      "type": "guess_the_number",
+      "skill": "prediction",
+      "question": "Guess how much you spent on coffee last month (closest wins).",
+      "options": ["$60", "$90", "$140", "$200"],
+      "answer": "$140",
+      "explanation": "You spent about $142 on coffee last month.",
+      "difficulty": "medium",
+      "data": { "category": "Coffee", "amount": 142.1 }
+    },
+    {
+      "id": "card_3",
+      "type": "true_false",
+      "skill": "habit_reinforcement",
+      "question": "True or False: Subscriptions are your #1 silent expense.",
+      "options": ["True", "False"],
+      "answer": "False",
+      "explanation": "Your frequent small purchases (like coffee) add up more than subscriptions.",
+      "difficulty": "easy",
+      "data": { "category": "Subscriptions", "amount": 89.0 }
+    },
+    {
+      "id": "card_4",
+      "type": "multiple_choice",
+      "skill": "math",
+      "question": "If you reduce food delivery by 1 order/week, about how much could you save per month?",
+      "options": ["$20", "$40", "$80", "$160"],
+      "answer": "$80",
+      "explanation": "One ~$20 order per week is roughly $80/month.",
+      "difficulty": "medium",
+      "data": { "merchant": "DoorDash", "assumption_order_cost": 20 }
+    },
+    {
+      "id": "card_5",
+      "type": "reflection",
+      "skill": "commitment",
+      "question": "What’s one small habit you can change this week to save money?",
+      "options": ["Cook 1 extra meal", "Cancel 1 subscription", "Bring coffee from home", "Set a daily spend cap"],
+      "answer": "Any",
+      "explanation": "Pick the easiest change—small wins compound over time.",
+      "difficulty": "easy",
+      "data": { "note": "reflection_card" }
+    }
+  ],
+  "meta": { "generated_by": "gemini", "fallback_used": false }
+}

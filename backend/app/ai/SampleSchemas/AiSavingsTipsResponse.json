@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "period": { "start_date": "2025-01-01", "end_date": "2025-01-31" },
+  "currency": "USD",
+  "tips": [
+    {
+      "id": "tip_1",
+      "title": "Cut food delivery by 1 order/week",
+      "recommendation": "Replace one delivery order each week with a simple grocery meal plan.",
+      "estimated_monthly_savings": 80.0,
+      "confidence": 0.78,
+      "category_targets": ["Food & Drink"],
+      "evidence": {
+        "based_on": ["top_merchants", "category_totals"],
+        "merchant": "DoorDash",
+        "current_monthly_spend": 310.0,
+        "assumption": "Assume ~$20/order and remove 4 orders/month."
+      },
+      "nudge": "Set a default 15-minute meal for busy days."
+    },
+    {
+      "id": "tip_2",
+      "title": "Cancel one unused subscription",
+      "recommendation": "Review recurring charges and cancel or pause one you don’t use weekly.",
+      "estimated_monthly_savings": 15.0,
+      "confidence": 0.65,
+      "category_targets": ["Subscriptions"],
+      "evidence": {
+        "based_on": ["recurring_merchants"],
+        "merchant": "Spotify",
+        "current_monthly_spend": 11.99,
+        "assumption": "Remove one recurring charge."
+      },
+      "nudge": "If you haven't used it in 2 weeks, pause it for 1 month."
+    },
+    {
+      "id": "tip_3",
+      "title": "Cap coffee spend at $4/day",
+      "recommendation": "Set a coffee budget and switch to home coffee 2 days/week.",
+      "estimated_monthly_savings": 35.0,
+      "confidence": 0.72,
+      "category_targets": ["Coffee"],
+      "evidence": {
+        "based_on": ["silent_spenders", "category_totals"],
+        "current_monthly_spend": 142.1,
+        "assumption": "Reduce coffee spend by ~25%."
+      },
+      "nudge": "Keep instant coffee at home as a backup."
+    }
+  ],
+  "totals": { "estimated_monthly_savings_total": 130.0 },
+  "meta": { "generated_by": "gemini", "fallback_used": false }
+}

@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "user_context": {
+    "user_id": "alex_demo",
+    "currency": "USD",
+    "timezone": "America/Los_Angeles"
+  },
+  "period": {
+    "start_date": "2025-01-01",
+    "end_date": "2025-01-31"
+  },
+  "income": {
+    "monthly_income": 2200.0,
+    "confidence": 0.7
+  },
+  "spending_summary": {
+    "total_spend": 1874.32,
+    "transaction_count": 126,
+    "category_totals": [
+      { "category": "Food & Drink", "amount": 510.25, "transaction_count": 34 },
+      { "category": "Coffee", "amount": 142.1, "transaction_count": 22 }
+    ],
+    "top_merchants": [
+      { "merchant": "Starbucks", "amount": 96.4, "transaction_count": 14, "category_hint": "Coffee" },
+      { "merchant": "DoorDash", "amount": 310.0, "transaction_count": 8, "category_hint": "Food & Drink" }
+    ],
+    "silent_spenders": [
+      { "label": "Coffee runs", "category": "Coffee", "avg_amount": 6.46, "transaction_count": 22, "amount": 142.1 }
+    ],
+    "recurring_merchants": [
+      {
+        "merchant": "Spotify",
+        "category_hint": "Subscriptions",
+        "amount_per_period": 11.99,
+        "cadence": "monthly",
+        "last_charge_date": "2025-01-18",
+        "confidence": 0.85
+      }
+    ]
+  },
+  "constraints": {
+    "tip_count": 3,
+    "flashcard_count": 5
+  }
+}
