@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import SpendingChart from '../components/SpendingChart';
 import AIInsights from '../components/AIInsights';
 import Flashcard from '../components/Flashcard';
+import SavingsMeter from '../components/SavingsMeter';
 import { mockUser } from '../data/mockData';
 
 export default function Dashboard() {
@@ -28,16 +29,14 @@ export default function Dashboard() {
             <AIInsights />
           </div>
 
-          {/* Flashcard - Now functional! */}
+          {/* Flashcard */}
           <div className="col-span-12">
             <Flashcard />
           </div>
 
-          <div className="col-span-12 card">
-            <h2 className="text-lg font-semibold mb-4">💸 Microsavings Meter</h2>
-            <div className="h-40 flex items-center justify-center text-gray-500">
-              Savings meter coming in Batch 5
-            </div>
+          {/* Microsavings Meter - Now functional! */}
+          <div className="col-span-12">
+            <SavingsMeter />
           </div>
         </div>
       </main>
