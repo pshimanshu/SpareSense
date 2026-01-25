@@ -69,7 +69,7 @@ class SolanaService:
             os.makedirs(os.path.dirname(mapping_file), exist_ok=True)
 
             # Use file locking to prevent race conditions
-            with open(mapping_file, 'r+') as f:
+            with open(mapping_file, 'w+') as f:
                 fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
                     mappings = json.load(f)
