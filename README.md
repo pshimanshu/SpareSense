@@ -150,6 +150,24 @@ python3 -m pip install -r backend/requirements.txt
 python3 -m uvicorn backend.app.main:app --reload
 ```
 
+Hackathon demo quickstart (recommended: no live Gemini dependency):
+
+```bash
+# Uses precomputed AI outputs for alex_demo if available (default behavior).
+bash backend/scripts/hackathon_check.sh
+python3 -m uvicorn backend.app.main:app --reload --port 5050
+```
+
+Frontend quickstart (Vite dev server):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend calls `/api/...` in development; `frontend/vite.config.js` proxies `/api` to `http://localhost:5050`.
+
 Smoke test the AI endpoints using the sample request payload:
 
 ```bash
