@@ -40,73 +40,120 @@ export const mockAIInsights = [
   }
 ];
 
-export const mockFlashcards = [
-  {
-    id: 1,
-    question: "Which category did you overspend on last month?",
-    options: [
-      "Coffee",
-      "Food Delivery",
-      "Subscriptions",
-      "Groceries"
-    ],
-    correctAnswer: 1, // Index of correct answer (Food Delivery)
-    explanation: "Food Delivery ($310) - that's 44% of your discretionary spending!",
-    answered: false,
-    userAnswer: null
-  },
-  {
-    id: 2,
-    question: "If you cut coffee spending by 20%, how much would you save per month?",
-    options: [
-      "$15",
-      "$28",
-      "$35",
-      "$42"
-    ],
-    correctAnswer: 1, // $28
-    explanation: "About $28/month or $336/year! Your current coffee spending is $142/month.",
-    answered: false,
-    userAnswer: null
-  },
-  {
-    id: 3,
-    question: "True or False: Subscriptions are your #1 silent expense",
-    options: [
-      "True",
-      "False"
-    ],
-    correctAnswer: 1, // False
-    explanation: "False! Food delivery costs you 3.5x more than all subscriptions combined.",
-    answered: false,
-    userAnswer: null
-  },
-  {
-    id: 4,
-    question: "How much did micro-roundups save you this week?",
-    options: [
-      "$5.50",
-      "$8.75",
-      "$12.84",
-      "$15.20"
-    ],
-    correctAnswer: 2, // $12.84
-    explanation: "$12.84 - completely invisible savings without you even noticing!",
-    answered: false,
-    userAnswer: null
-  },
-  {
-    id: 5,
-    question: "What's the best first step to save money this week?",
-    options: [
-      "Cancel all subscriptions",
-      "Cook at home twice instead of ordering",
-      "Stop buying coffee completely",
-      "Switch banks"
-    ],
-    correctAnswer: 1, // Cook at home twice
-    explanation: "Try cooking at home twice instead of ordering delivery. Start small and build sustainable habits!",
-    answered: false,
-    userAnswer: null
+export const mockFlashcards = {
+  flashcards: [
+    {
+      id: "card_1",
+      type: "multiple_choice",
+      skill: "awareness",
+      question: "Which category did you overspend on last month?",
+      options: [
+        "Coffee",
+        "Food Delivery",
+        "Subscriptions",
+        "Groceries"
+      ],
+      answer: "Food Delivery",
+      explanation: "Food Delivery ($310) - that's 44% of your discretionary spending!",
+      difficulty: "easy",
+      confidence_score: 0.92,
+      data: { 
+        category: "Food Delivery", 
+        amount: 310,
+        percentage: 44
+      }
+    },
+    {
+      id: "card_2",
+      type: "guess_the_number",
+      skill: "prediction",
+      question: "If you cut coffee spending by 20%, how much would you save per month?",
+      options: [
+        "$15",
+        "$28",
+        "$35",
+        "$42"
+      ],
+      answer: "$28",
+      explanation: "About $28/month or $336/year! Your current coffee spending is $142/month.",
+      difficulty: "medium",
+      confidence_score: 0.88,
+      data: { 
+        category: "Coffee", 
+        current_amount: 142,
+        savings_monthly: 28,
+        savings_yearly: 336
+      }
+    },
+    {
+      id: "card_3",
+      type: "true_false",
+      skill: "habit_reinforcement",
+      question: "True or False: Subscriptions are your #1 silent expense",
+      options: [
+        "True",
+        "False"
+      ],
+      answer: "False",
+      explanation: "False! Food delivery costs you 3.5x more than all subscriptions combined.",
+      difficulty: "easy",
+      confidence_score: 0.95,
+      data: { 
+        category: "Subscriptions", 
+        amount: 89,
+        comparison: "Food delivery is 3.5x more"
+      }
+    },
+    {
+      id: "card_4",
+      type: "multiple_choice",
+      skill: "awareness",
+      question: "How much did micro-roundups save you this week?",
+      options: [
+        "$5.50",
+        "$8.75",
+        "$12.84",
+        "$15.20"
+      ],
+      answer: "$12.84",
+      explanation: "$12.84 - completely invisible savings without you even noticing!",
+      difficulty: "medium",
+      confidence_score: 0.85,
+      data: { 
+        feature: "micro-roundups",
+        amount: 12.84,
+        period: "week"
+      }
+    },
+    {
+      id: "card_5",
+      type: "reflection",
+      skill: "commitment",
+      question: "What's the best first step to save money this week?",
+      options: [
+        "Cancel all subscriptions",
+        "Cook at home twice instead of ordering",
+        "Stop buying coffee completely",
+        "Switch banks"
+      ],
+      answer: "Cook at home twice instead of ordering",
+      explanation: "Try cooking at home twice instead of ordering delivery. Start small and build sustainable habits!",
+      difficulty: "easy",
+      confidence_score: 0.90,
+      data: { 
+        recommendation: "Cook at home",
+        impact: "Start small, build habits",
+        potential_savings: 40
+      }
+    }
+  ],
+  meta: {
+    generated_by: "mock_data",
+    fallback_used: false,
+    total_cards: 5,
+    user_spending_period: "last_month"
   }
-];
+};
+
+// For backwards compatibility, export just the flashcards array if needed
+export const mockFlashcardsArray = mockFlashcards.flashcards;

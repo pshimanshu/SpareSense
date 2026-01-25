@@ -1,13 +1,45 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { RotateCw, Star, ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
-import { mockFlashcards } from '../data/mockData';
 
-export default function Flashcard() {
+export default function Flashcard({ flashcardsData }) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [cards, setCards] = useState(mockFlashcards);
+  const [cards, setCards] = useState([]);
   const [rating, setRating] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
+
+  // Process flashcards data when it changes
+  useEffect(() => {
+    if (flashcardsData?.flashcards) {
+      let processedCards = flashcardsData.flashcards.map(card => ({
+        ...card,
+        answered: false,
+        userAnswer: null,
+        correctAnswer: card.options.findIndex(opt => opt === card.answer)
+      }));
+
+      // If more than 5 cards, sort by confidence and take top 5
+      if (processedCards.length > 5) {
+        processedCards = processedCards
+          .sort((a, b) => (b.confidence_score || 0) - (a.confidence_score || 0))
+          .slice(0, 5);
+      }
+
+      setCards(processedCards);
+      setCurrentCardIndex(0);
+      setIsFlipped(false);
+      setRating(null);
+      setSelectedAnswer(null);
+    }
+  }, [flashcardsData]);
+
+  if (!cards.length) {
+    return (
+      <div className="card">
+        <p className="text-center text-gray-400">No flashcards available</p>
+      </div>
+    );
+  }
 
   const currentCard = cards[currentCardIndex];
   const progress = ((currentCardIndex + 1) / cards.length) * 100;
@@ -32,7 +64,7 @@ export default function Flashcard() {
       setCurrentCardIndex(currentCardIndex + 1);
       setIsFlipped(false);
       setRating(null);
-      setSelectedAnswer(cards[currentCardIndex + 1].userAnswer);
+      setSelectedAnswer(cards[currentCardIndex + 1].userAnswer || null);
     }
   };
 
@@ -41,7 +73,7 @@ export default function Flashcard() {
       setCurrentCardIndex(currentCardIndex - 1);
       setIsFlipped(false);
       setRating(null);
-      setSelectedAnswer(cards[currentCardIndex - 1].userAnswer);
+      setSelectedAnswer(cards[currentCardIndex - 1].userAnswer || null);
     }
   };
 
@@ -54,7 +86,7 @@ export default function Flashcard() {
     setIsFlipped(false);
     setRating(null);
     setSelectedAnswer(null);
-    setCards(mockFlashcards.map(card => ({ ...card, answered: false, userAnswer: null })));
+    setCards(cards.map(card => ({ ...card, answered: false, userAnswer: null })));
   };
 
   const answeredCount = cards.filter(card => card.answered).length;
@@ -65,7 +97,7 @@ export default function Flashcard() {
   return (
     <div className="card">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold">🎴 Financial Literacy Flashcard</h2>
+        <h2 className="text-lg font-semibold">🎴 Your Spending Insights</h2>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-400">
             Score: {correctCount}/{answeredCount}
@@ -100,7 +132,7 @@ export default function Flashcard() {
         <div className="flex items-center justify-center gap-2 mt-3">
           {cards.map((card, index) => (
             <div
-              key={index}
+              key={card.id || index}
               className={`w-2 h-2 rounded-full transition-all ${
                 index === currentCardIndex
                   ? 'bg-primary w-3'
@@ -122,10 +154,21 @@ export default function Flashcard() {
           <div className="space-y-4">
             <div className="bg-gradient-to-br from-primary/20 to-purple-600/20 border-2 border-primary/30 rounded-xl p-6">
               <div className="flex items-start gap-3 mb-4">
-                <div className="text-3xl">❓</div>
-                <p className="text-lg font-medium text-white leading-relaxed flex-1">
-                  {currentCard.question}
-                </p>
+                <div className="text-3xl">
+                  {currentCard.type === 'true_false' ? '🤔' : 
+                   currentCard.type === 'guess_the_number' ? '💰' :
+                   currentCard.type === 'reflection' ? '💭' : '❓'}
+                </div>
+                <div className="flex-1">
+                  <p className="text-lg font-medium text-white leading-relaxed">
+                    {currentCard.question}
+                  </p>
+                  {currentCard.skill && (
+                    <span className="inline-block mt-2 text-xs bg-primary/20 text-primary px-2 py-1 rounded">
+                      {currentCard.skill.replace('_', ' ')}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -160,23 +203,26 @@ export default function Flashcard() {
         ) : (
           // Answer Side
           <div className={`p-6 rounded-xl border-2 ${
-            isCorrect
+            isCorrect || currentCard.type === 'reflection'
               ? 'bg-gradient-to-br from-success/20 to-emerald-600/20 border-success/30'
               : 'bg-gradient-to-br from-red-500/20 to-red-600/20 border-red-500/30'
           }`}>
             <div className="flex items-start gap-3 mb-4">
               <div className="text-3xl">
-                {isCorrect ? '✅' : '❌'}
+                {currentCard.type === 'reflection' ? '💡' : isCorrect ? '✅' : '❌'}
               </div>
               <div className="flex-1">
                 <h3 className={`text-xl font-bold mb-2 ${
-                  isCorrect ? 'text-success' : 'text-red-400'
+                  isCorrect || currentCard.type === 'reflection' ? 'text-success' : 'text-red-400'
                 }`}>
-                  {isCorrect ? 'Correct!' : 'Not quite!'}
+                  {currentCard.type === 'reflection' ? 'Great choice!' : 
+                   isCorrect ? 'Correct!' : 'Not quite!'}
                 </h3>
-                <p className="text-white mb-3">
-                  The correct answer is: <span className="font-bold">{currentCard.options[currentCard.correctAnswer]}</span>
-                </p>
+                {currentCard.type !== 'reflection' && (
+                  <p className="text-white mb-3">
+                    The correct answer is: <span className="font-bold">{currentCard.options[currentCard.correctAnswer]}</span>
+                  </p>
+                )}
                 <p className="text-gray-300 leading-relaxed">
                   {currentCard.explanation}
                 </p>
