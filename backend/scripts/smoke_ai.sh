@@ -27,4 +27,3 @@ curl -sS \
   -H "Content-Type: application/json" \
   --data-binary @"$REQ_FILE"
 echo
-

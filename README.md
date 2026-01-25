@@ -142,6 +142,12 @@ Smoke test the AI endpoints using the sample request payload:
 bash backend/scripts/smoke_ai.sh
 ```
 
+Validate the deterministic fallbacks + contract offline (no server, no Gemini):
+
+```bash
+python3 backend/scripts/validate_fallbacks.py
+```
+
 Or manual curl (uses `backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json` as the request body):
 
 ```bash
