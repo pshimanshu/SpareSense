@@ -17,6 +17,8 @@ import httpx
 from dotenv import load_dotenv 
 import os
 import random
+import math
+import datetime
 
 app = FastAPI(title="FinWise API")
 
