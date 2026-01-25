@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from pydantic import ValidationError
 
-from .gemini_client import GeminiError, generate_text, load_gemini_config_from_env
+from .gemini_client import generate_text, load_gemini_config_from_env
 from .schemas import AiFlashcardsResponse, AiSavingsTipsResponse, AiSpendingSummaryRequest
 
 
