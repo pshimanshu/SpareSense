@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RotateCw, Star, ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
+import { RotateCw, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiService } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';

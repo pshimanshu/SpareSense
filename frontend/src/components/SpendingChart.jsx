@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { mockSpendingData } from '../data/mockData';
 import { apiService } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';

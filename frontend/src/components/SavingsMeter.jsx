@@ -35,7 +35,7 @@ export default function SavingsMeter({ demoMode }) {
   const todayRoundUps = todayTransactions.reduce((sum, tx) => sum + tx.roundUp, 0);
 
   // Progress to next $5 milestone
-  const nextMilestone = Math.ceil(totalRoundUps / 5) * 5;
+  const nextMilestone = Math.max(5, Math.ceil(totalRoundUps / 5) * 5);
   const progressPercent = (totalRoundUps / nextMilestone) * 100;
 
   // Simulate a new transaction

@@ -3,13 +3,12 @@ import Header from '../components/Header';
 import SpendingChart from '../components/SpendingChart';
 import AIInsights from '../components/AIInsights';
 import Flashcard from '../components/Flashcard';
-import { mockFlashcards } from '../data/mockData';
 import SavingsMeter from '../components/SavingsMeter';
 import { mockUser } from '../data/mockData';
 
 export default function Dashboard() {
   const [demoMode, setDemoMode] = useState(true);
-  const [userData, setUserData] = useState(mockUser);
+  const [userData] = useState(mockUser);
 
   return (
     <div className="min-h-screen">
