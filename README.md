@@ -76,6 +76,10 @@ Prompt templates (used to force Gemini to return contract-valid JSON):
 Deterministic fallbacks (demo-safe responses that always match the contract):
 - `backend/app/ai/fallbacks.py`
 
+Gemini integration:
+- Client: `backend/app/ai/gemini_client.py` (reads `GEMINI_API_KEY` + optional config)
+- LLM prompt + JSON validation: `backend/app/ai/llm_service.py`
+
 ### Shared Request Body (input JSON)
 
 Both AI endpoints accept the same request body:
@@ -112,3 +116,11 @@ Until Gemini is fully wired, the backend can return deterministic responses that
 Implementation notes:
 - Router: `backend/app/ai/router.py`
 - FastAPI wiring: `backend/app/main.py`
+
+Environment variables (Gemini):
+- `GEMINI_API_KEY` (required to enable Gemini; if missing, backend falls back deterministically)
+- `GEMINI_MODEL` (optional, default `gemini-1.5-flash`)
+- `GEMINI_BASE_URL` (optional, default `https://generativelanguage.googleapis.com/v1beta`)
+- `GEMINI_TIMEOUT_S` (optional)
+- `GEMINI_TEMPERATURE` (optional)
+- `GEMINI_MAX_OUTPUT_TOKENS` (optional)
