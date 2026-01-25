@@ -142,6 +142,12 @@ Smoke test the AI endpoints using the sample request payload:
 bash backend/scripts/smoke_ai.sh
 ```
 
+If your environment blocks binding to localhost ports, run an in-process smoke test instead:
+
+```bash
+python3 backend/scripts/test_api_inprocess.py
+```
+
 Validate the deterministic fallbacks + contract offline (no server, no Gemini):
 
 ```bash

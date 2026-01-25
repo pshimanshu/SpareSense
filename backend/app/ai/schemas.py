@@ -9,7 +9,7 @@ Why this exists:
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -26,7 +26,7 @@ SchemaVersion = Literal["1.0"]
 class UserContext(BaseModel):
     user_id: str = Field(..., examples=["alex_demo"])
     currency: str = Field(default="USD", examples=["USD"])
-    timezone: str | None = Field(default=None, examples=["America/Florida"])
+    timezone: Optional[str] = Field(default=None, examples=["America/Florida"])
 
 
 class Period(BaseModel):
@@ -35,7 +35,7 @@ class Period(BaseModel):
 
 
 class Income(BaseModel):
-    monthly_income: float | None = Field(default=None, ge=0)
+    monthly_income: Optional[float] = Field(default=None, ge=0)
     confidence: float = Field(default=0.5, ge=0, le=1)
 
 
@@ -49,7 +49,7 @@ class MerchantTotal(BaseModel):
     merchant: str
     amount: float = Field(..., ge=0)
     transaction_count: int = Field(..., ge=0)
-    category_hint: str | None = None
+    category_hint: Optional[str] = None
 
 
 class SilentSpender(BaseModel):
@@ -58,18 +58,18 @@ class SilentSpender(BaseModel):
     """
 
     label: str
-    category: str | None = None
-    avg_amount: float | None = Field(default=None, ge=0)
+    category: Optional[str] = None
+    avg_amount: Optional[float] = Field(default=None, ge=0)
     transaction_count: int = Field(..., ge=0)
     amount: float = Field(..., ge=0)
 
 
 class RecurringMerchant(BaseModel):
     merchant: str
-    category_hint: str | None = None
+    category_hint: Optional[str] = None
     amount_per_period: float = Field(..., ge=0)
     cadence: Literal["weekly", "biweekly", "monthly", "quarterly", "yearly", "unknown"] = "unknown"
-    last_charge_date: date | None = None
+    last_charge_date: Optional[date] = None
     confidence: float = Field(default=0.5, ge=0, le=1)
 
 
@@ -110,9 +110,9 @@ class TipEvidence(BaseModel):
     based_on: list[Literal["top_merchants", "category_totals", "silent_spenders", "recurring_merchants"]] = Field(
         default_factory=list
     )
-    merchant: str | None = None
-    current_monthly_spend: float | None = Field(default=None, ge=0)
-    assumption: str | None = None
+    merchant: Optional[str] = None
+    current_monthly_spend: Optional[float] = Field(default=None, ge=0)
+    assumption: Optional[str] = None
 
 
 class SavingsTip(BaseModel):
@@ -122,8 +122,8 @@ class SavingsTip(BaseModel):
     estimated_monthly_savings: float = Field(..., ge=0)
     confidence: float = Field(..., ge=0, le=1)
     category_targets: list[str] = Field(default_factory=list)
-    evidence: TipEvidence | None = None
-    nudge: str | None = None
+    evidence: Optional[TipEvidence] = None
+    nudge: Optional[str] = None
 
 
 class SavingsTotals(BaseModel):
@@ -172,4 +172,3 @@ class AiFlashcardsResponse(BaseModel):
     currency: str = "USD"
     flashcards: list[Flashcard] = Field(default_factory=list)
     meta: ResponseMeta = Field(default_factory=ResponseMeta)
-

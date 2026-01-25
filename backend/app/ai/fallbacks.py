@@ -8,7 +8,7 @@ Why this exists:
 - Keeps frontend integration stable while Gemini integration is being built.
 """
 
-from typing import Any
+from typing import Any, Optional, Tuple
 
 from .schemas import (
     AiFlashcardsResponse,
@@ -22,14 +22,14 @@ from .schemas import (
 )
 
 
-def _top_category(req: AiSpendingSummaryRequest) -> tuple[str | None, float | None]:
+def _top_category(req: AiSpendingSummaryRequest) -> Tuple[Optional[str], Optional[float]]:
     if not req.spending_summary.category_totals:
         return None, None
     top = max(req.spending_summary.category_totals, key=lambda c: c.amount)
     return top.category, top.amount
 
 
-def _top_merchant(req: AiSpendingSummaryRequest) -> tuple[str | None, float | None]:
+def _top_merchant(req: AiSpendingSummaryRequest) -> Tuple[Optional[str], Optional[float]]:
     if not req.spending_summary.top_merchants:
         return None, None
     top = max(req.spending_summary.top_merchants, key=lambda m: m.amount)
@@ -298,4 +298,3 @@ def _demo_only_debug_payload(req: AiSpendingSummaryRequest) -> dict[str, Any]:
     Not used by endpoints; handy for quickly introspecting the request shape during dev.
     """
     return {"schema_version": req.schema_version, "user_id": req.user_context.user_id}
-
