@@ -65,7 +65,8 @@ def generate_savings_tips(payload: AiSpendingSummaryRequest) -> AiSavingsTipsRes
     cfg = load_gemini_config_from_env()
 
     template = _load_prompt("savings_tips.txt")
-    input_json = payload.model_dump_json()
+    # Keep the model input compact to avoid prompt bloat and token-limit truncation.
+    input_json = payload.model_dump_json(exclude_none=True)
     prompt = _render_prompt(
         template,
         input_json=input_json,
@@ -91,7 +92,7 @@ def generate_flashcards(payload: AiSpendingSummaryRequest) -> AiFlashcardsRespon
     cfg = load_gemini_config_from_env()
 
     template = _load_prompt("flashcards.txt")
-    input_json = payload.model_dump_json()
+    input_json = payload.model_dump_json(exclude_none=True)
     prompt = _render_prompt(
         template,
         input_json=input_json,
@@ -114,4 +115,3 @@ def generate_flashcards(payload: AiSpendingSummaryRequest) -> AiFlashcardsRespon
 
 def _pretty_json_for_debug(obj: object) -> str:
     return json.dumps(obj, indent=2, sort_keys=True)
-

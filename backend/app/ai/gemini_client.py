@@ -18,8 +18,9 @@ class GeminiConfig:
     model: str = "gemini-2.0-flash"
     base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     timeout_s: float = 20.0
-    temperature: float = 0.4
-    max_output_tokens: int = 800
+    temperature: float = 0.2
+    # Default higher to avoid truncated JSON responses for structured outputs.
+    max_output_tokens: int = 2048
 
 
 def load_gemini_config_from_env() -> GeminiConfig:
@@ -54,8 +55,8 @@ def load_gemini_config_from_env() -> GeminiConfig:
         model=model,
         base_url=base_url,
         timeout_s=_float("GEMINI_TIMEOUT_S", 20.0),
-        temperature=_float("GEMINI_TEMPERATURE", 0.4),
-        max_output_tokens=_int("GEMINI_MAX_OUTPUT_TOKENS", 800),
+        temperature=_float("GEMINI_TEMPERATURE", 0.2),
+        max_output_tokens=_int("GEMINI_MAX_OUTPUT_TOKENS", 2048),
     )
 
 
@@ -76,6 +77,8 @@ def generate_text(prompt: str, *, cfg: GeminiConfig) -> str:
         "generationConfig": {
             "temperature": cfg.temperature,
             "maxOutputTokens": cfg.max_output_tokens,
+            # Hint to Gemini that we want raw JSON (helps avoid markdown/code-fences).
+            "responseMimeType": "application/json",
         },
     }
 

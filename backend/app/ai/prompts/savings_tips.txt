@@ -1,32 +1,32 @@
-You are a financial coaching assistant.
+Return ONLY valid JSON (no markdown/backticks). Output MUST be a complete JSON object.
 
-Return ONLY valid JSON. Do not wrap in markdown. Do not include backticks. No extra keys.
+Task: generate {{tip_count}} personalized savings tips from the input.
 
-Your output MUST validate against this schema shape:
+Output JSON object exactly with keys:
 - schema_version: "1.0"
-- period: { start_date, end_date } (copy exactly from input.period)
-- currency: (copy exactly from input.user_context.currency)
-- tips: array of exactly N items, where N = input.constraints.tip_count
-  - id: "tip_1" ... "tip_N"
-  - title: short string
-  - recommendation: 1-2 sentences, actionable, friendly
-  - estimated_monthly_savings: number >= 0
-  - confidence: number between 0 and 1
-  - category_targets: array of strings (can be empty)
-  - evidence: object or null
-    - based_on: array of strings, each in ["top_merchants","category_totals","silent_spenders","recurring_merchants"]
-    - merchant: string or null
-    - current_monthly_spend: number or null
-    - assumption: string or null
-  - nudge: string or null (short behavioral nudge)
-- totals: { estimated_monthly_savings_total: number >= 0 } (sum of tips[].estimated_monthly_savings)
-- meta: { generated_by: "gemini", fallback_used: false }
+- period: copy input.period
+- currency: copy input.user_context.currency
+- tips: array length {{tip_count}}
+- totals: { "estimated_monthly_savings_total": number } (sum of tips[].estimated_monthly_savings)
+- meta: { "generated_by": "gemini", "fallback_used": false }
 
-Guidance:
-- Use the provided spending totals and merchant totals to ground recommendations.
-- If monthly_income is null, still generate tips; keep confidence slightly lower and call out assumptions.
-- Keep estimates conservative and explain assumptions in evidence.assumption.
+Each tips[i] object must have:
+- id: "tip_1"..."tip_{{tip_count}}"
+- title: string
+- recommendation: string (1-2 sentences)
+- estimated_monthly_savings: number >= 0
+- confidence: number 0..1
+- category_targets: array of strings
+- evidence: object or null with keys { based_on, merchant, current_monthly_spend, assumption }
+  - based_on MUST be an array (even if one item), e.g. ["top_merchants"]
+  - each based_on value must be from: ["top_merchants","category_totals","silent_spenders","recurring_merchants"]
+- nudge: string or null
 
-Input JSON:
+Keep the response compact:
+- Keep title/recommendation/nudge short.
+- Prefer evidence=null unless a single short assumption is needed.
+
+Use only categories/merchants present in the input. If income is missing, keep estimates conservative.
+
+Input:
 {{input_json}}
-

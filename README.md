@@ -122,8 +122,8 @@ Environment variables (Gemini):
 - `GEMINI_MODEL` (optional, default `gemini-2.0-flash`)
 - `GEMINI_BASE_URL` (optional, default `https://generativelanguage.googleapis.com/v1beta`)
 - `GEMINI_TIMEOUT_S` (optional)
-- `GEMINI_TEMPERATURE` (optional)
-- `GEMINI_MAX_OUTPUT_TOKENS` (optional)
+- `GEMINI_TEMPERATURE` (optional, default 0.2)
+- `GEMINI_MAX_OUTPUT_TOKENS` (optional, default 2048)
 
 ---
 
