@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 import os
 import random
 import math
-import datetime
+from datetime import datetime
 
 app = FastAPI(title="FinWise API")
 
