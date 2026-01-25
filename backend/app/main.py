@@ -293,3 +293,50 @@ async def get_interactive_dashboard():
         return HTMLResponse(content=full_html)
     except Exception as e:
         return HTMLResponse(content=f"Error: {e}", status_code=500)
+
+@app.get("/transactions-by-customer")
+async def get_customers_array():
+    try:
+        # 1. Fetch Merchants (mapping)
+        merch_data = requests.get(f"{BASE_URL}/merchants?key={NESSIE_API_KEY}").json()
+        merchants = {m['_id']: m['name'] for m in merch_data}
+
+        # 2. Fetch Customers
+        customers = requests.get(f"{BASE_URL}/customers?key={NESSIE_API_KEY}").json()
+        
+        # 3. Build the Array (List)
+        final_list = []
+
+        for cust in customers:
+            c_id = cust['_id']
+            full_name = f"{cust['first_name']} {cust['last_name']}"
+            
+            # Fetch Accounts
+            acc_res = requests.get(f"{BASE_URL}/customers/{c_id}/accounts?key={NESSIE_API_KEY}").json()
+            
+            customer_purchases = []
+            if acc_res:
+                for acc in acc_res:
+                    p_res = requests.get(f"{BASE_URL}/accounts/{acc['_id']}/purchases?key={NESSIE_API_KEY}").json()
+                    
+                    for p in p_res:
+                        customer_purchases.append({
+                            "purchase_id": p.get("_id"),
+                            "merchant_name": merchants.get(p.get('merchant_id'), "Unknown"),
+                            "description": p.get('description'),
+                            "amount": p.get('amount'),
+                            "date": p.get('purchase_date'),
+                        })
+
+            # Create the object and append to our final array
+            final_list.append({
+                "name": full_name,
+                "customer_id": c_id,
+                "transaction_count": len(customer_purchases),
+                "transactions": customer_purchases
+            })
+
+        return final_list
+
+    except Exception as e:
+        return {"error": str(e)}
