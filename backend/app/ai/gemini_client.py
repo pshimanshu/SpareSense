@@ -93,16 +93,17 @@ def generate_text(prompt: str, *, cfg: GeminiConfig) -> str:
     except ValueError as e:
         raise GeminiError(f"Gemini returned non-JSON response: {resp.text[:500]}") from e
 
-    # Expected shape: candidates[0].content.parts[0].text
+    # Expected shape: candidates[0].content.parts[*].text
     try:
         candidates = data.get("candidates") or []
         content = candidates[0].get("content") or {}
         parts = content.get("parts") or []
-        text = parts[0].get("text")
+        texts = [p.get("text") for p in parts if isinstance(p, dict) and isinstance(p.get("text"), str)]
     except Exception as e:
         raise GeminiError(f"Unexpected Gemini response shape: {str(data)[:500]}") from e
 
-    if not isinstance(text, str) or not text.strip():
+    text = "".join(texts).strip()
+    if not text:
         raise GeminiError("Gemini returned empty text")
 
     return text
