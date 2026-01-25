@@ -124,3 +124,36 @@ Environment variables (Gemini):
 - `GEMINI_TIMEOUT_S` (optional)
 - `GEMINI_TEMPERATURE` (optional)
 - `GEMINI_MAX_OUTPUT_TOKENS` (optional)
+
+---
+
+## ▶️ Run + Smoke Test (Backend AI)
+
+Start the FastAPI server (from repo root):
+
+```bash
+python3 -m pip install -r backend/requirements.txt
+python3 -m uvicorn backend.app.main:app --reload
+```
+
+Smoke test the AI endpoints using the sample request payload:
+
+```bash
+bash backend/scripts/smoke_ai.sh
+```
+
+Or manual curl (uses `backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json` as the request body):
+
+```bash
+curl -sS -X POST http://localhost:8000/ai/savings-tips \
+  -H "Content-Type: application/json" \
+  --data-binary @backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json
+
+curl -sS -X POST http://localhost:8000/ai/flashcards \
+  -H "Content-Type: application/json" \
+  --data-binary @backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json
+```
+
+Notes:
+- If `GEMINI_API_KEY` is not set, responses come from deterministic fallbacks (`meta.fallback_used = true`).
+- If `GEMINI_API_KEY` is set, the backend tries Gemini first and falls back if Gemini fails or returns invalid JSON.
