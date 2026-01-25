@@ -16,3 +16,6 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.6.3
 uvicorn==0.40.0
+solana==0.32.0
+solders==0.20.0
+base58==2.1.1

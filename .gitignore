@@ -11,3 +11,9 @@ node_modules/
 
 # OS
 .DS_Store
+
+# Solana Keys
+wallet-keypair.json
+
+# data
+/backend/app/savings/data/
