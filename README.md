@@ -108,3 +108,7 @@ These are the endpoints the backend will expose for DEV 2:
 Until Gemini is fully wired, the backend can return deterministic responses that:
 - Always return exactly `constraints.tip_count` tips and `constraints.flashcard_count` flashcards
 - Set `meta.fallback_used = true` and `meta.generated_by = "fallback"`
+
+Implementation notes:
+- Router: `backend/app/ai/router.py`
+- FastAPI wiring: `backend/app/main.py`
