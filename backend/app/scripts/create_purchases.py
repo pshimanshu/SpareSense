@@ -37,7 +37,7 @@ def run_simulation():
         name = f"{customer['first_name']} {customer['last_name']}"
         
         try:
-            acc_req = requests.get(f"{BASE_URL}/customers/{c_id}/accounts?key={API_KEY}", timeout=5)
+            acc_req = requests.get(f"{BASE_URL}/customers/{c_id}/accounts?key={API_KEY}", timeout=10)
             acc_req.raise_for_status()
             accounts = acc_req.json()
             
@@ -80,7 +80,7 @@ def run_simulation():
             }
 
             try:
-                res = requests.post(f"{BASE_URL}/accounts/{acc_id}/purchases?key={API_KEY}", json=payload, timeout=5)
+                res = requests.post(f"{BASE_URL}/accounts/{acc_id}/purchases?key={API_KEY}", json=payload, timeout=10)
                 if res.status_code == 201:
                     print(f"  [{i+1}] Success: ${amt:.2f} at {merchant['name']}")
                 else:
