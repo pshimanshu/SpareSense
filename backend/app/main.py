@@ -32,6 +32,8 @@ app.add_middleware(
         "https://finwise-9jic84wg3-himanshu-pss-projects.vercel.app",  # Alternative Vercel URL
         "http://localhost:5173",  # Local development
         "http://localhost:5174",  # Alternative local port
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
     ],
     allow_credentials=True,
     allow_methods=["*"],

@@ -7,8 +7,13 @@ import {
   mockFlashcards 
 } from '../data/mockData';
 
-// Backend default port per README (can be overridden via VITE_API_BASE_URL).
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5050';
+// Backend base URL:
+// - Prefer explicit VITE_API_BASE_URL
+// - Otherwise, use the same hostname the frontend is served from (localhost vs 127.0.0.1)
+//   to avoid IPv6/localhost binding mismatches during local dev.
+const DEFAULT_HOST =
+  (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : 'localhost';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${DEFAULT_HOST}:5050`;
 
 // API Client
 const apiClient = axios.create({

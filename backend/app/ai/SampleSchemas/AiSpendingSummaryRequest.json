@@ -39,7 +39,7 @@
     ]
   },
   "constraints": {
-    "tip_count": 3,
-    "flashcard_count": 5
+    "tip_count": 1,
+    "flashcard_count": 1
   }
 }
