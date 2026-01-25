@@ -7,7 +7,7 @@ from .savings.schema.models import (
     BalanceResponse,
 )
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from fastapi.responses import HTMLResponse
@@ -16,6 +16,9 @@ from pydantic import BaseModel
 import httpx
 from dotenv import load_dotenv 
 import os
+import random
+import math
+from datetime import datetime
 
 app = FastAPI(title="FinWise API")
 
@@ -434,3 +437,72 @@ async def get_customers_with_transactions(name: Optional[str] = Query(None, desc
 
     except Exception as e:
         return {"error": str(e)}
+
+class SimplePurchaseRequest(BaseModel):
+    amount: float
+
+@app.post("/accounts/{account_id}/simple-purchase")
+async def create_simple_purchase(
+    request: SimplePurchaseRequest, 
+    account_id: str = Path(...)
+):
+    async with httpx.AsyncClient() as client:
+        # 1. Fetch Merchants to get a valid ID (Frontend didn't send one)
+        try:
+            merch_resp = await client.get(f"{BASE_URL}/merchants?key={NESSIE_API_KEY}")
+            merch_resp.raise_for_status()
+            merchants = merch_resp.json()
+
+            if not merchants:
+                raise HTTPException(status_code=404, detail="No merchants found in Nessie database.")
+
+            # Pick a random merchant for this transaction
+            selected_merchant = random.choice(merchants)
+
+        except httpx.HTTPStatusError:
+            raise HTTPException(status_code=500, detail="Failed to fetch merchants from Nessie.")
+
+        #Round transaction up to nearest dollar
+        roundup_amount = math.ceil(request.amount)
+        solana_amount = roundup_amount - request.amount
+
+        # 2. Build the full payload internally
+        full_payload = {
+            "merchant_id": selected_merchant["_id"],
+            "medium": "balance",
+            "purchase_date": datetime.now().strftime("%Y-%m-%d"),
+            "amount": roundup_amount,
+            "status": "completed",
+            "description": f"Purchase at {selected_merchant['name']}"
+        }
+
+        # 3. Post to Nessie
+        url = f"{BASE_URL}/accounts/{account_id}/purchases?key={NESSIE_API_KEY}"
+        response = await client.post(url, json=full_payload)
+
+        if response.status_code != 201:
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+
+        # 4. Trigger SOL transfer to user's wallet
+        # First, get the account to find the customer
+        customer_resp = await client.get(f"{BASE_URL}/accounts/{account_id}?key={NESSIE_API_KEY}")
+        customer_resp.raise_for_status()
+        customer = customer_resp.json()
+        customer_id = customer.get("customer_id")
+        if not customer_id:
+            raise HTTPException(status_code=404, detail="Customer not found for this account.")
+        
+        # Now, get the user's wallet
+        wallet_info = solana_service.get_user_wallet(customer_id)
+        if not wallet_info:
+            solana_service.create_user_wallet(customer_id)
+            wallet_info = solana_service.get_user_wallet(customer_id)
+        # Transfer SOL
+        transfer_result = solana_service.transfer_sol(wallet_info["wallet_address"], solana_amount)
+
+        return {
+            "message": "Transaction created by Backend",
+            "merchant_used": selected_merchant["name"],
+            "nessie_response": response.json(),
+            "solana_transfer": transfer_result
+        }
