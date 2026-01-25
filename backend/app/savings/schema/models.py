@@ -1,17 +1,17 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class CreateWalletRequest(BaseModel):
     user_id: str
 
 class TransferRequest(BaseModel):
-    user_id: str
-    amount_sol: float
+    user_id: str = Field(min_length=1, max_length=50, pattern=r'^[a-zA-Z0-9_-]+$', description="Unique user identifier, alphanumeric with hyphens and underscores only")
+    amount_sol: float = Field(gt=0, description="Amount in SOL to transfer")
 
 class WalletResponse(BaseModel):
-    user_id: str
+    user_id: str = Field(min_length=1, max_length=50, pattern=r'^[a-zA-Z0-9_-]+$', description="Unique user identifier, alphanumeric with hyphens and underscores only")
     wallet_address: str
     created_at: datetime
 

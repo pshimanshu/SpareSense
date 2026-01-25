@@ -1,4 +1,6 @@
+import fcntl
 import json
+import logging
 import os
 from typing import Optional, Dict, Any
 from solana.rpc.api import Client
@@ -7,12 +9,12 @@ from solders.pubkey import Pubkey
 from solders.system_program import transfer as solders_transfer, TransferParams as SoldersTransferParams
 from solders.transaction import VersionedTransaction
 from solders.message import MessageV0
-from solders.instruction import Instruction, AccountMeta
-from solders.hash import Hash
-import base58
 from datetime import datetime
+import re
 
 class SolanaService:
+    LAMPORTS_PER_SOL = 1_000_000_000
+
     def __init__(self):
         # Using Solana devnet for testing purposes
         self.rpc_url = os.getenv("SOLANA_RPC_URL", "https://api.devnet.solana.com")
@@ -60,19 +62,24 @@ class SolanaService:
         mapping_file = "./app/savings/data/user_wallets.json"
 
         try:
-            if os.path.exists(mapping_file):
-                with open(mapping_file, "r") as f:
+            # Ensure the directory exists
+            os.makedirs(os.path.dirname(mapping_file), exist_ok=True)
+
+            # Use file locking to prevent race conditions
+            with open(mapping_file, 'r+') as f:
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                try:
                     mappings = json.load(f)
-            else:
-                mappings = {}
-
-            mappings[wallet_info["user_id"]] = wallet_info
-
-            with open(mapping_file, "w") as f:
+                except (json.JSONDecodeError, ValueError):
+                    mappings = {}
+                mappings[wallet_info["user_id"]] = wallet_info
+                f.seek(0)
+                f.truncate()
                 json.dump(mappings, f, indent=2)
 
         except Exception as e:
-            print(f"Warning: Failed to save wallet mapping: {e}")
+            logging.warning(f"Failed to save wallet mapping: {e}")
+
 
     def get_user_wallet(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user's wallet information"""
@@ -84,7 +91,7 @@ class SolanaService:
                     mappings = json.load(f)
                     return mappings.get(user_id)
         except Exception as e:
-            print(f"Warning: Failed to load wallet mapping: {e}")
+            logging.warning(f"Failed to load wallet mapping: {e}")
 
         return None
 
@@ -92,9 +99,26 @@ class SolanaService:
         """
         Transfer SOL from the main wallet to a user's wallet
         """
+
+        # Validate the wallet address format before attempting the transfer
+        if not re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', to_wallet_address):
+            return {
+                "success": False,
+                "error": "Invalid wallet address format. Please provide a valid Solana wallet address."
+            }
+        
+        # Check main wallet balance before attempting transfer
+        main_balance = self.get_main_wallet_balance()
+        if main_balance < amount_sol:
+            return {
+                "success": False,
+                "error": f"Insufficient funds in main wallet. Available: {main_balance} SOL, Required: {amount_sol} SOL"
+            }
+
+
         try:
             # Convert SOL to lamports (1 SOL = 1,000,000,000 lamports)
-            amount_lamports = int(amount_sol * 1_000_000_000)
+            amount_lamports = int(amount_sol * self.LAMPORTS_PER_SOL)
 
             # Create transfer instruction
             transfer_ix = solders_transfer(
@@ -132,7 +156,7 @@ class SolanaService:
             else:
                 return {
                     "success": False,
-                    "error": "Transaction failed"
+                    "error": "Transaction rejected by RPC node. This may indicate insufficient funds, invalid recipient, or network issues."
                 }
 
         except Exception as e:
@@ -147,9 +171,9 @@ class SolanaService:
             public_key = Pubkey.from_string(wallet_address)
             balance = self.client.get_balance(public_key)
             # Convert lamports to SOL
-            return balance.value / 1_000_000_000
+            return balance.value / self.LAMPORTS_PER_SOL
         except Exception as e:
-            print(f"Error getting balance: {e}")
+            logging.error(f"Error getting balance for wallet {wallet_address}: {e}")
             return 0.0
 
     def get_main_wallet_balance(self) -> float:
@@ -157,5 +181,5 @@ class SolanaService:
         try:
             return self.get_wallet_balance(str(self.main_keypair.pubkey()))
         except Exception as e:
-            print(f"Error getting main wallet balance: {e}")
+            logging.error(f"Error getting main wallet balance: {e}")
             return 0.0

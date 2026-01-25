@@ -16,12 +16,19 @@ solana_service = SolanaService()
 def health():
     return {"status": "ok"}
 
-@app.post("/wallets/create", response_model=WalletResponse)
+@app.post("/wallets", response_model=WalletResponse)
 def create_user_wallet(request: CreateWalletRequest):
     """Create a new Solana wallet for a user"""
     try:
+        # Check if wallet already exists for this user
+        existing_wallet = solana_service.get_user_wallet(request.user_id)
+        if existing_wallet:
+            raise HTTPException(status_code=409, detail=f"Wallet already exists for user {request.user_id}")
+        
         wallet_info = solana_service.create_user_wallet(request.user_id)
         return WalletResponse(**wallet_info)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create wallet: {str(e)}")
 
@@ -55,7 +62,7 @@ def get_main_wallet_balance():
     """Get the balance of the main wallet"""
     balance = solana_service.get_main_wallet_balance()
     return BalanceResponse(
-        wallet_address=str(solana_service.main_keypair.pubkey()),
+        wallet_address="main_wallet",
         balance_sol=balance
     )
 
