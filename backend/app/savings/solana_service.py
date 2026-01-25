@@ -2,16 +2,18 @@ import fcntl
 import json
 import logging
 import os
-from typing import Optional, Dict, Any
+import re
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 from solana.rpc.api import Client
 from solders.keypair import Keypair
+from solders.message import MessageV0
 from solders.pubkey import Pubkey
 from solders.system_program import transfer as solders_transfer, TransferParams as SoldersTransferParams
 from solders.transaction import VersionedTransaction
-from solders.message import MessageV0
 from dotenv import load_dotenv
-from datetime import datetime
-import re
 
 class SolanaService:
     LAMPORTS_PER_SOL = 1_000_000_000
@@ -22,7 +24,14 @@ class SolanaService:
         self.client = Client(self.rpc_url)
 
         # Load the main wallet keypair
-        self.main_keypair = self._load_bank_keypair()
+        self.main_keypair: Optional[Keypair]
+        try:
+            self.main_keypair = self._load_bank_keypair()
+        except Exception as e:
+            # Don't crash the API server if the keypair is missing; keep Solana endpoints functional
+            # enough to return a friendly error in demo mode.
+            logging.warning(str(e))
+            self.main_keypair = None
 
     def _load_bank_keypair(self) -> Keypair:
         """Load the main wallet keypair from env variable"""
@@ -62,11 +71,11 @@ class SolanaService:
 
     def _save_wallet_mapping(self, wallet_info: Dict[str, Any]):
         """Save wallet mapping to a JSON file (demo purposes)"""
-        mapping_file = "./app/savings/data/user_wallets.json"
+        mapping_file = Path(__file__).resolve().parent / "data" / "user_wallets.json"
 
         try:
             # Ensure the directory exists
-            os.makedirs(os.path.dirname(mapping_file), exist_ok=True)
+            mapping_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Use file locking to prevent race conditions
             with open(mapping_file, 'w+') as f:
@@ -86,13 +95,12 @@ class SolanaService:
 
     def get_user_wallet(self, user_id: str) -> Optional[Dict[str, Any]]:
         """Get user's wallet information"""
-        mapping_file = "./app/savings/data/user_wallets.json"
+        mapping_file = Path(__file__).resolve().parent / "data" / "user_wallets.json"
 
         try:
-            if os.path.exists(mapping_file):
-                with open(mapping_file, "r") as f:
-                    mappings = json.load(f)
-                    return mappings.get(user_id)
+            if mapping_file.exists():
+                mappings = json.loads(mapping_file.read_text(encoding="utf-8") or "{}")
+                return mappings.get(user_id)
         except Exception as e:
             logging.warning(f"Failed to load wallet mapping: {e}")
 
@@ -102,6 +110,11 @@ class SolanaService:
         """
         Transfer SOL from the main wallet to a user's wallet
         """
+        if self.main_keypair is None:
+            return {
+                "success": False,
+                "error": "Solana main wallet keypair not configured. Set SOLANA_MAIN_KEYPAIR_PATH to enable transfers."
+            }
 
         # Validate the wallet address format before attempting the transfer
         if not re.match(r'^[1-9A-HJ-NP-Za-km-z]{32,44}$', to_wallet_address):
@@ -182,6 +195,8 @@ class SolanaService:
     def get_main_wallet_balance(self) -> float:
         """Get the balance of the main wallet"""
         try:
+            if self.main_keypair is None:
+                return 0.0
             return self.get_wallet_balance(str(self.main_keypair.pubkey()))
         except Exception as e:
             logging.error(f"Error getting main wallet balance: {e}")

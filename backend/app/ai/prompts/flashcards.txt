@@ -1,0 +1,30 @@
+Return ONLY valid JSON (no markdown/backticks). Output MUST be a complete JSON object.
+
+Task: generate {{flashcard_count}} flashcards from the input to teach better money habits.
+
+Output JSON object exactly with keys:
+- schema_version: "1.0"
+- period: copy input.period
+- currency: copy input.user_context.currency
+- flashcards: array length {{flashcard_count}}
+- meta: { "generated_by": "gemini", "fallback_used": false }
+
+Each flashcards[i] object must have:
+- id: "card_1"..."card_{{flashcard_count}}"
+- type: one of ["multiple_choice","true_false","guess_the_number","reflection"]
+- skill: one of ["awareness","prediction","habit_reinforcement","math","commitment"]
+- question: string
+- options: array of 2-4 strings (always present; true_false must be ["True","False"])
+- answer: string (for reflection, use "Any")
+- explanation: string (1 friendly sentence)
+- difficulty: one of ["easy","medium","hard"]
+- data: object (can be empty)
+
+Keep the response compact:
+- Keep question and explanation short.
+- Use empty data objects unless needed for a number-based question.
+
+Use only categories/merchants present in the input. Keep numbers consistent with the input.
+
+Input:
+{{input_json}}

@@ -7,7 +7,13 @@ import {
   mockFlashcards 
 } from '../data/mockData';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// Backend base URL:
+// - Prefer explicit VITE_API_BASE_URL
+// - Otherwise, use the same hostname the frontend is served from (localhost vs 127.0.0.1)
+//   to avoid IPv6/localhost binding mismatches during local dev.
+const DEFAULT_HOST =
+  (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : 'localhost';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || `http://${DEFAULT_HOST}:5050`;
 
 // API Client
 const apiClient = axios.create({
@@ -33,6 +39,60 @@ apiClient.interceptors.request.use(
 
 // Simulate network delay for realistic mock behavior
 const mockDelay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Build the DEV-2 AI contract request body expected by:
+// - POST /ai/savings-tips
+// - POST /ai/flashcards
+const buildAiSpendingSummaryRequest = ({
+  userId = 'alex_demo',
+  currency = 'USD',
+  tipCount = 3,
+  flashcardCount = 5,
+} = {}) => {
+  // Use the existing mock data to keep the demo deterministic and easy to wire.
+  const category_totals = (mockSpendingData || []).map((c) => ({
+    category: c.category,
+    amount: Number(c.amount) || 0,
+    transaction_count: (mockTransactions || []).filter((t) => t.category === c.category).length,
+  }));
+
+  const top_merchants_map = new Map();
+  (mockTransactions || []).forEach((t) => {
+    const k = t.merchant || 'Unknown';
+    const prev = top_merchants_map.get(k) || { merchant: k, amount: 0, transaction_count: 0, category_hint: t.category || null };
+    prev.amount += Number(t.amount) || 0;
+    prev.transaction_count += 1;
+    if (!prev.category_hint && t.category) prev.category_hint = t.category;
+    top_merchants_map.set(k, prev);
+  });
+
+  const top_merchants = Array.from(top_merchants_map.values())
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5);
+
+  const total_spend = category_totals.reduce((sum, c) => sum + c.amount, 0);
+  const transaction_count = (mockTransactions || []).length;
+
+  // Period: use a stable range so precomputed demo outputs are consistent.
+  // (Backend AI contract only requires ISO dates; it doesn't require "today".)
+  const period = { start_date: '2025-01-01', end_date: '2025-01-31' };
+
+  return {
+    schema_version: '1.0',
+    user_context: { user_id: userId, currency },
+    period,
+    income: { monthly_income: null, confidence: 0.5 },
+    spending_summary: {
+      total_spend,
+      transaction_count,
+      category_totals,
+      top_merchants,
+      silent_spenders: [],
+      recurring_merchants: [],
+    },
+    constraints: { tip_count: tipCount, flashcard_count: flashcardCount },
+  };
+};
 
 // API Service Functions
 export const apiService = {
@@ -84,14 +144,32 @@ export const apiService = {
   },
 
   // AI Insights
-  async getAIInsights(useMockData = false, spendingData) {
+  async getAIInsights(useMockData = false) {
     if (useMockData) {
       await mockDelay(1000); // Longer delay for AI simulation
       return { data: mockAIInsights };
     }
-    // Send spending data to backend, which calls Gemini API
-    const response = await apiClient.post('/ai/insights', { spendingData });
-    return response;
+    // Backend DEV-2 endpoint: POST /ai/savings-tips
+    const payload = buildAiSpendingSummaryRequest({ userId: 'alex_demo', tipCount: 3 });
+    const resp = await apiClient.post('/ai/savings-tips', payload);
+
+    const tipsResp = resp.data;
+    const currency = tipsResp?.currency || 'USD';
+    const total = tipsResp?.totals?.estimated_monthly_savings_total ?? 0;
+
+    const insights = [
+      {
+        type: 'alert',
+        message: `Estimated monthly savings potential: ${currency} ${Number(total).toFixed(2)}`,
+      },
+      ...(tipsResp?.tips || []).map((t) => ({
+        type: 'tip',
+        message: `${t.title} — ${t.recommendation}`,
+        savings: t.estimated_monthly_savings,
+      })),
+    ];
+
+    return { data: insights };
   },
 
   async generateMoreInsights(useMockData = false, context) {
@@ -112,8 +190,18 @@ export const apiService = {
         ]
       };
     }
-    const response = await apiClient.post('/ai/insights/generate', { context });
-    return response;
+    // Simple approach: request a few more tips and return them in the same UI shape.
+    // We keep user_id as alex_demo so precomputed mode works by default.
+    const payload = buildAiSpendingSummaryRequest({ userId: 'alex_demo', tipCount: 2 });
+    const resp = await apiClient.post('/ai/savings-tips', payload);
+
+    const tips = (resp.data?.tips || []).map((t) => ({
+      type: 'tip',
+      message: `${t.title} — ${t.recommendation}`,
+      savings: t.estimated_monthly_savings,
+    }));
+
+    return { data: tips };
   },
 
   // Flashcards
@@ -122,8 +210,14 @@ export const apiService = {
       await mockDelay();
       return { data: mockFlashcards };
     }
-    const response = await apiClient.get(`/flashcards/${userId}`);
-    return response;
+    // Backend DEV-2 endpoint: POST /ai/flashcards
+    const payload = buildAiSpendingSummaryRequest({ userId: userId || 'alex_demo', flashcardCount: 5 });
+    const resp = await apiClient.post('/ai/flashcards', payload);
+
+    // Add a confidence_score field so the UI's "sort by confidence" logic keeps working.
+    const data = resp.data || {};
+    const flashcards = (data.flashcards || []).map((c) => ({ ...c, confidence_score: 0.5 }));
+    return { data: { ...data, flashcards } };
   },
 
   async submitFlashcardAnswer(useMockData = false, cardId, answer, isCorrect) {
