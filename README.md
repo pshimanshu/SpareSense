@@ -80,6 +80,11 @@ Gemini integration:
 - Client: `backend/app/ai/gemini_client.py` (reads `GEMINI_API_KEY` + optional config)
 - LLM prompt + JSON validation: `backend/app/ai/llm_service.py`
 
+Precomputed demo outputs (recommended for hackathon demos):
+- Store: `backend/app/ai/precomputed_store.py`
+- Files: `backend/app/ai/precomputed/alex_demo_savings_tips.json`, `backend/app/ai/precomputed/alex_demo_flashcards.json`
+- Script to regenerate with Gemini: `backend/scripts/precompute_demo_ai.py`
+
 ### Shared Request Body (input JSON)
 
 Both AI endpoints accept the same request body:
@@ -129,6 +134,11 @@ Environment variables (Gemini):
 - `GEMINI_CACHE_TTL_S` (optional, default 600; caches successful Gemini responses in-memory to reduce rate limits)
 - `GEMINI_REQUIRED` (optional; if set, the in-process test expects Gemini output and fails if fallback is used)
 
+Environment variables (precomputed demo mode):
+- `AI_USE_PRECOMPUTED` (optional, default 1; serve precomputed demo outputs when available)
+- `AI_DEMO_USER_ID` (optional, default `alex_demo`; user_id that triggers precomputed outputs)
+- `AI_PRECOMPUTED_DIR` (optional; override the folder used for precomputed JSON files)
+
 ---
 
 ## ▶️ Run + Smoke Test (Backend AI)
@@ -162,6 +172,12 @@ Run lightweight unit tests (contract validation + endpoint responses):
 
 ```bash
 python3 -m unittest discover -s backend/tests
+```
+
+Regenerate precomputed demo outputs (requires Gemini quota/key):
+
+```bash
+python3 backend/scripts/precompute_demo_ai.py
 ```
 
 Or manual curl (uses `backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json` as the request body):
