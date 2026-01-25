@@ -5,7 +5,7 @@ import { apiService } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';
 
-export default function AIInsights({ demoMode }) {
+export default function AIInsights({ demoMode, customerName }) {
   const [insights, setInsights] = useState(mockAIInsights);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,7 +27,7 @@ export default function AIInsights({ demoMode }) {
     };
 
     fetchInsights();
-  }, [demoMode]);
+  }, [demoMode, customerName]);
 
   const handleGenerateMore = async () => {
     setGenerating(true);

@@ -5,7 +5,7 @@ import { apiService } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';
 
-export default function SavingsMeter({ demoMode }) {
+export default function SavingsMeter({ demoMode, customerName }) {
   const [transactions, setTransactions] = useState(mockTransactions);
   const [isSimulating, setIsSimulating] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export default function SavingsMeter({ demoMode }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await apiService.getTransactions(demoMode);
+        const response = await apiService.getTransactions(demoMode, customerName);
         setTransactions(response.data);
       } catch (err) {
         setError('Failed to load transactions');
@@ -27,7 +27,7 @@ export default function SavingsMeter({ demoMode }) {
     };
 
     fetchTransactions();
-  }, [demoMode]);
+  }, [demoMode, customerName]);
 
   // Calculate totals
   const totalRoundUps = transactions.reduce((sum, tx) => sum + tx.roundUp, 0);

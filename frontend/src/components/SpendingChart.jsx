@@ -5,7 +5,7 @@ import { apiService } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';
 
-export default function SpendingChart({ demoMode }) {
+export default function SpendingChart({ demoMode, customerName }) {
   const [spendingData, setSpendingData] = useState(mockSpendingData);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -15,7 +15,7 @@ export default function SpendingChart({ demoMode }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await apiService.getSpendingBreakdown(demoMode);
+        const response = await apiService.getSpendingBreakdown(demoMode, customerName);
         setSpendingData(response.data);
       } catch (err) {
         setError('Failed to load spending data');
@@ -26,7 +26,7 @@ export default function SpendingChart({ demoMode }) {
     };
 
     fetchSpendingData();
-  }, [demoMode]);
+  }, [demoMode, customerName]);
 
   if (loading) return <div className="card"><LoadingSpinner /></div>;
   if (error) return <div className="card"><ErrorMessage message={error} /></div>;
