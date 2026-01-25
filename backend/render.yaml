@@ -10,3 +10,5 @@ services:
         value: 3.11.0
       - key: NESSIE_API_KEY
         sync: false  # You'll add this manually in Render dashboard
+      - key: SOLANA_MAIN_WALLET_PRIVATE_KEY
+        sync: false  # You'll add this manually in Render dashboard

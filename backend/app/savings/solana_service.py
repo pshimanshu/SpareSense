@@ -13,6 +13,7 @@ from solders.message import MessageV0
 from solders.pubkey import Pubkey
 from solders.system_program import transfer as solders_transfer, TransferParams as SoldersTransferParams
 from solders.transaction import VersionedTransaction
+from dotenv import load_dotenv
 
 class SolanaService:
     LAMPORTS_PER_SOL = 1_000_000_000
@@ -33,21 +34,15 @@ class SolanaService:
             self.main_keypair = None
 
     def _load_bank_keypair(self) -> Keypair:
-        """Load the main wallet keypair from wallet-keypair.json"""
-        # Allow overriding via env for deployments.
-        env_path = os.getenv("SOLANA_MAIN_KEYPAIR_PATH", "").strip()
-        if env_path:
-            path = Path(env_path)
-        else:
-            # Default: repo root / wallet-keypair.json (works regardless of CWD).
-            # backend/app/savings/solana_service.py -> repo root is 3 parents up.
-            path = Path(__file__).resolve().parents[3] / "wallet-keypair.json"
-
-        try:
-            keypair_data = json.loads(path.read_text(encoding="utf-8"))
-            return Keypair.from_bytes(bytes(keypair_data))
-        except Exception as e:
-            raise Exception(f"Failed to load main wallet keypair at {path}: {e}")
+        """Load the main wallet keypair from env variable"""
+        load_dotenv()
+        keypair_data = os.environ.get("SOLANA_MAIN_WALLET_PRIVATE_KEY")
+        if keypair_data:
+            try:
+                keypair_list = json.loads(keypair_data)
+                return Keypair.from_bytes(bytes(keypair_list))
+            except Exception as e:
+                raise Exception(f"Failed to load main wallet keypair from env: {e}")
 
     def create_user_wallet(self, user_id: str) -> Dict[str, Any]:
         """
@@ -83,8 +78,7 @@ class SolanaService:
             mapping_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Use file locking to prevent race conditions
-            mapping_file.touch(exist_ok=True)
-            with mapping_file.open("r+", encoding="utf-8") as f:
+            with open(mapping_file, 'w+') as f:
                 fcntl.flock(f.fileno(), fcntl.LOCK_EX)
                 try:
                     mappings = json.load(f)
