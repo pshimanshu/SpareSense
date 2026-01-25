@@ -10,7 +10,8 @@ API_KEY = os.getenv("NESSIE_API_KEY")
 BASE_URL = "http://api.nessieisreal.com"
 
 def delete_all_purchases():
-    filename = "purchase_ids.json"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    filename = os.path.join(script_dir, "purchase_ids.json")
 
     # Check if the file exists
     if not os.path.exists(filename):
