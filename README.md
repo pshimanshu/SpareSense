@@ -1,38 +1,36 @@
-# 💸 FinWise — Smart Spending & Micro-Savings Assistant
+# SpareSense — Smart Spending & Micro-Savings Assistant
 
-FinWise is a hackathon project that helps users **understand their spending, learn better financial habits, and save money automatically** — all in a fun, low-friction way.
-
-Built for the **Capital One: Best Financial Hack** challenge.
+SpareSense is a hackathon project that helps users **understand their spending, learn better financial habits, and save money automatically** — all in a fun, low-friction way.
 
 ---
 
-## 🚀 Project Overview
+## Project Overview
 
-FinWise combines transaction analysis, AI insights, gamification, and micro-savings to help users make smarter financial decisions.
+SpareSense combines transaction analysis, AI insights, gamification, and micro-savings to help users make smarter financial decisions.
 
 ### Core Features
 
-- 📊 **Spending Analysis**
+- **Spending Analysis**
   - Pulls mock transaction data using the Capital One **Nessie API**
   - Groups transactions by category and merchant
   - Identifies recurring and high-impact spending patterns
 
-- 🤖 **AI-Powered Financial Insights**
+-  **AI-Powered Financial Insights**
   - Uses **Google Gemini API** to generate personalized savings suggestions
   - Translates raw transaction data into actionable advice
 
-- 🎮 **Gamified Financial Learning**
+- **Gamified Financial Learning**
   - Interactive flashcard questions based on the user’s spending habits
   - Encourages financial literacy through short, engaging challenges
 
-- 💰 **Micro-Savings Bot**
+- **Micro-Savings Bot**
   - Automatically rounds up purchases to the nearest dollar
   - Saves spare change into a dedicated savings balance
   - Simulated or real investment flow using **Solana (Devnet)**
 
 ---
 
-## 🏗️ Tech Stack
+## Tech Stack
 
 **Frontend**
 - React + Vite
@@ -49,186 +47,8 @@ FinWise combines transaction analysis, AI insights, gamification, and micro-savi
 
 ---
 
-## 📁 Project Structure
-finwise/  
+## Project Structure
+sparesense/  
 ├─ backend/ # FastAPI backend (API, AI, savings logic)  
 ├─ frontend/ # React frontend (UI & dashboard)  
 └─ README.md  
-
-### Backend Setup
-
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python3 -m uvicorn backend.app.main:app --reload --port 5050
-```
-Backend runs at `http://localhost:5050`.
-
-### Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
-```
-Frontend runs at `http://localhost:5173`.
-
----
-
-## 🤝 AI Data Contracts (DEV 2)
-
-The AI endpoints use a **versioned JSON contract** so the frontend and backend stay in sync and Gemini prompts can be forced to return stable output.
-
-Source of truth (Pydantic models):
-- `backend/app/ai/schemas.py`
-
-Sample JSON payloads (ready to use for mock API calls / frontend dev):
-- `backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json`
-- `backend/app/ai/SampleSchemas/AiSavingsTipsResponse.json`
-- `backend/app/ai/SampleSchemas/AiFlashcardsResponse.json`
-
-Prompt templates (used to force Gemini to return contract-valid JSON):
-- `backend/app/ai/prompts/savings_tips.txt`
-- `backend/app/ai/prompts/flashcards.txt`
-
-Deterministic fallbacks (demo-safe responses that always match the contract):
-- `backend/app/ai/fallbacks.py`
-
-Gemini integration:
-- Client: `backend/app/ai/gemini_client.py` (reads `GEMINI_API_KEY` + optional config)
-- LLM prompt + JSON validation: `backend/app/ai/llm_service.py`
-
-Precomputed demo outputs (recommended for hackathon demos):
-- Store: `backend/app/ai/precomputed_store.py`
-- Files: `backend/app/ai/precomputed/alex_demo_savings_tips.json`, `backend/app/ai/precomputed/alex_demo_flashcards.json`
-- Script to regenerate with Gemini: `backend/scripts/precompute_demo_ai.py`
-
-### Shared Request Body (input JSON)
-
-Both AI endpoints accept the same request body:
-- `AiSpendingSummaryRequest`
-  - `spending_summary.category_totals`: category totals and counts
-  - `spending_summary.top_merchants`: top merchant totals and counts
-  - Optional enrichments: `silent_spenders`, `recurring_merchants`
-  - `income.monthly_income` + `income.confidence` (0..1)
-  - `constraints.tip_count` (1..10) and `constraints.flashcard_count` (1..20) to control response size
-
-### Savings Tips Response (output JSON)
-
-- `AiSavingsTipsResponse`
-  - `tips[]`: each tip includes `estimated_monthly_savings`, `confidence` (0..1), and an optional `evidence` block + `nudge`
-  - `totals.estimated_monthly_savings_total`: sum of the tip estimates
-
-### Flashcards Response (output JSON)
-
-- `AiFlashcardsResponse`
-  - `flashcards[]`: `type`, `skill`, `question`, `options`, `answer`, `explanation`, and optional `data` for UI context
-
-### Planned AI Endpoints
-
-These are the endpoints the backend will expose for DEV 2:
-- `POST /ai/savings-tips` -> `AiSavingsTipsResponse`
-- `POST /ai/flashcards` -> `AiFlashcardsResponse`
-
-### Demo-Safe Behavior (Fallbacks)
-
-Until Gemini is fully wired, the backend can return deterministic responses that:
-- Always return exactly `constraints.tip_count` tips and `constraints.flashcard_count` flashcards
-- Set `meta.fallback_used = true` and `meta.generated_by = "fallback"`
-
-Implementation notes:
-- Router: `backend/app/ai/router.py`
-- FastAPI wiring: `backend/app/main.py`
-
-Environment variables (Gemini):
-- `GEMINI_API_KEY` (required to enable Gemini; if missing, backend falls back deterministically)
-- `GEMINI_MODEL` (optional, default `gemini-2.0-flash`)
-- `GEMINI_BASE_URL` (optional, default `https://generativelanguage.googleapis.com/v1beta`)
-- `GEMINI_TIMEOUT_S` (optional)
-- `GEMINI_TEMPERATURE` (optional, default 0.2)
-- `GEMINI_MAX_OUTPUT_TOKENS` (optional, default 2048)
-- `GEMINI_MAX_RETRIES` (optional, default 1; retries on HTTP 429 rate limits)
-- `GEMINI_MAX_RETRY_SLEEP_S` (optional, default 10; caps sleep time per retry)
-- `GEMINI_CACHE_TTL_S` (optional, default 600; caches successful Gemini responses in-memory to reduce rate limits)
-- `GEMINI_REQUIRED` (optional; if set, the in-process test expects Gemini output and fails if fallback is used)
-
-Environment variables (precomputed demo mode):
-- `AI_USE_PRECOMPUTED` (optional, default 1; serve precomputed demo outputs when available)
-- `AI_DEMO_USER_ID` (optional, default `alex_demo`; user_id that triggers precomputed outputs)
-- `AI_PRECOMPUTED_DIR` (optional; override the folder used for precomputed JSON files)
-
----
-
-## ▶️ Run + Smoke Test (Backend AI)
-
-Start the FastAPI server (from repo root):
-
-```bash
-python3 -m pip install -r backend/requirements.txt
-python3 -m uvicorn backend.app.main:app --reload --port 5050
-```
-
-Hackathon demo quickstart (recommended: no live Gemini dependency):
-
-```bash
-# Uses precomputed AI outputs for alex_demo if available (default behavior).
-bash backend/scripts/hackathon_check.sh
-python3 -m uvicorn backend.app.main:app --reload --port 5050
-```
-
-Frontend quickstart (Vite dev server):
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-The frontend calls `/api/...` in development; `frontend/vite.config.js` proxies `/api` to `http://localhost:5050`.
-
-Smoke test the AI endpoints using the sample request payload:
-
-```bash
-bash backend/scripts/smoke_ai.sh
-```
-
-If your environment blocks binding to localhost ports, run an in-process smoke test instead:
-
-```bash
-python3 backend/scripts/test_api_inprocess.py
-```
-
-Validate the deterministic fallbacks + contract offline (no server, no Gemini):
-
-```bash
-python3 backend/scripts/validate_fallbacks.py
-```
-
-Run lightweight unit tests (contract validation + endpoint responses):
-
-```bash
-python3 -m unittest discover -s backend/tests
-```
-
-Regenerate precomputed demo outputs (requires Gemini quota/key):
-
-```bash
-python3 backend/scripts/precompute_demo_ai.py
-```
-
-Or manual curl (uses `backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json` as the request body):
-
-```bash
-curl -sS -X POST http://localhost:8000/ai/savings-tips \
-  -H "Content-Type: application/json" \
-  --data-binary @backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json
-
-curl -sS -X POST http://localhost:8000/ai/flashcards \
-  -H "Content-Type: application/json" \
-  --data-binary @backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json
-```
-
-Notes:
-- If `GEMINI_API_KEY` is not set, responses come from deterministic fallbacks (`meta.fallback_used = true`).
-- If `GEMINI_API_KEY` is set, the backend tries Gemini first and falls back if Gemini fails or returns invalid JSON.
