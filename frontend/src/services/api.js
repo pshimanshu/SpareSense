@@ -7,10 +7,7 @@ import {
   mockFlashcards 
 } from '../data/mockData';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
-
-// Toggle between mock and real API
-const USE_MOCK_DATA = true; // Set to false when backend is ready
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 // API Client
 const apiClient = axios.create({
@@ -40,8 +37,8 @@ const mockDelay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
 // API Service Functions
 export const apiService = {
   // User Data
-  async getUserData() {
-    if (USE_MOCK_DATA) {
+  async getUserData(useMockData = false) {
+    if (useMockData) {
       await mockDelay();
       return { data: mockUser };
     }
@@ -50,8 +47,8 @@ export const apiService = {
   },
 
   // Transactions
-  async getTransactions(params = {}) {
-    if (USE_MOCK_DATA) {
+  async getTransactions(useMockData = false, params = {}) {
+    if (useMockData) {
       await mockDelay();
       return { data: mockTransactions };
     }
@@ -60,8 +57,8 @@ export const apiService = {
     return response;
   },
 
-  async createTransaction(transactionData) {
-    if (USE_MOCK_DATA) {
+  async createTransaction(useMockData = false, transactionData) {
+    if (useMockData) {
       await mockDelay();
       const newTransaction = {
         id: Date.now(),
@@ -76,8 +73,8 @@ export const apiService = {
   },
 
   // Spending Analysis
-  async getSpendingBreakdown(period = '30days') {
-    if (USE_MOCK_DATA) {
+  async getSpendingBreakdown(useMockData = false, period = '30days') {
+    if (useMockData) {
       await mockDelay();
       return { data: mockSpendingData };
     }
@@ -87,8 +84,8 @@ export const apiService = {
   },
 
   // AI Insights
-  async getAIInsights(spendingData) {
-    if (USE_MOCK_DATA) {
+  async getAIInsights(useMockData = false, spendingData) {
+    if (useMockData) {
       await mockDelay(1000); // Longer delay for AI simulation
       return { data: mockAIInsights };
     }
@@ -97,8 +94,8 @@ export const apiService = {
     return response;
   },
 
-  async generateMoreInsights(context) {
-    if (USE_MOCK_DATA) {
+  async generateMoreInsights(useMockData = false, context) {
+    if (useMockData) {
       await mockDelay(1500);
       return { 
         data: [
@@ -120,8 +117,8 @@ export const apiService = {
   },
 
   // Flashcards
-  async getFlashcards(userId) {
-    if (USE_MOCK_DATA) {
+  async getFlashcards(useMockData = false, userId) {
+    if (useMockData) {
       await mockDelay();
       return { data: mockFlashcards };
     }
@@ -129,8 +126,8 @@ export const apiService = {
     return response;
   },
 
-  async submitFlashcardAnswer(cardId, answer, isCorrect) {
-    if (USE_MOCK_DATA) {
+  async submitFlashcardAnswer(useMockData = false, cardId, answer, isCorrect) {
+    if (useMockData) {
       await mockDelay(300);
       return { data: { success: true } };
     }
@@ -143,8 +140,8 @@ export const apiService = {
   },
 
   // Savings/Round-ups
-  async getSavingsSummary() {
-    if (USE_MOCK_DATA) {
+  async getSavingsSummary(useMockData = false) {
+    if (useMockData) {
       await mockDelay();
       const totalRoundUps = mockTransactions.reduce((sum, tx) => sum + tx.roundUp, 0);
       const todayTransactions = mockTransactions.filter(tx => tx.date === "2025-01-23");
@@ -163,8 +160,8 @@ export const apiService = {
   },
 
   // Solana Integration (future)
-  async investRoundups(amount) {
-    if (USE_MOCK_DATA) {
+  async investRoundups(useMockData = false, amount) {
+    if (useMockData) {
       await mockDelay(2000);
       return {
         data: {

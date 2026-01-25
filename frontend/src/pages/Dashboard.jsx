@@ -9,11 +9,12 @@ import { mockUser } from '../data/mockData';
 
 export default function Dashboard() {
   const [demoMode, setDemoMode] = useState(true);
+  const [userData, setUserData] = useState(mockUser);
 
   return (
     <div className="min-h-screen">
       <Header 
-        user={mockUser} 
+        user={userData} 
         demoMode={demoMode}
         onToggleDemo={() => setDemoMode(!demoMode)}
       />
@@ -22,22 +23,22 @@ export default function Dashboard() {
         <div className="grid grid-cols-12 gap-6">
           {/* Spending Chart */}
           <div className="col-span-5">
-            <SpendingChart />
+            <SpendingChart demoMode={demoMode} />
           </div>
 
           {/* AI Insights */}
           <div className="col-span-7">
-            <AIInsights />
+            <AIInsights demoMode={demoMode} />
           </div>
 
           {/* Flashcard */}
           <div className="col-span-12">
-            <Flashcard flashcardsData={mockFlashcards} />
+            <Flashcard demoMode={demoMode} />
           </div>
 
           {/* Microsavings Meter - Now functional! */}
           <div className="col-span-12">
-            <SavingsMeter />
+            <SavingsMeter demoMode={demoMode} />
           </div>
         </div>
       </main>

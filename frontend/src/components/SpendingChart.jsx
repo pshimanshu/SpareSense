@@ -1,8 +1,37 @@
+import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { mockSpendingData } from '../data/mockData';
+import { apiService } from '../services/api';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
 
-export default function SpendingChart() {
-  const totalSpending = mockSpendingData.reduce((sum, item) => sum + item.amount, 0);
+export default function SpendingChart({ demoMode }) {
+  const [spendingData, setSpendingData] = useState(mockSpendingData);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchSpendingData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await apiService.getSpendingBreakdown(demoMode);
+        setSpendingData(response.data);
+      } catch (err) {
+        setError('Failed to load spending data');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSpendingData();
+  }, [demoMode]);
+
+  if (loading) return <div className="card"><LoadingSpinner /></div>;
+  if (error) return <div className="card"><ErrorMessage message={error} /></div>;
+
+  const totalSpending = spendingData.reduce((sum, item) => sum + item.amount, 0);
 
   // Custom tooltip
   const CustomTooltip = ({ active, payload }) => {
@@ -54,7 +83,7 @@ export default function SpendingChart() {
       <ResponsiveContainer width="100%" height={250}>
         <PieChart>
           <Pie
-            data={mockSpendingData}
+            data={spendingData}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -65,7 +94,7 @@ export default function SpendingChart() {
             dataKey="amount"
             nameKey="category"
           >
-            {mockSpendingData.map((entry, index) => (
+            {spendingData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
@@ -75,7 +104,7 @@ export default function SpendingChart() {
 
       {/* Legend with amounts */}
       <div className="mt-6 space-y-2">
-        {mockSpendingData.map((item) => (
+        {spendingData.map((item) => (
           <div key={item.category} className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div 

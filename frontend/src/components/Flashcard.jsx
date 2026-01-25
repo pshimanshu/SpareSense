@@ -1,37 +1,59 @@
 import { useState, useEffect } from 'react';
 import { RotateCw, Star, ChevronLeft, ChevronRight, CheckCircle, XCircle } from 'lucide-react';
+import { apiService } from '../services/api';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
 
-export default function Flashcard({ flashcardsData }) {
+export default function Flashcard({ demoMode }) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [cards, setCards] = useState([]);
   const [rating, setRating] = useState(null);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Process flashcards data when it changes
+  // Fetch flashcards data when demoMode changes
   useEffect(() => {
-    if (flashcardsData?.flashcards) {
-      let processedCards = flashcardsData.flashcards.map(card => ({
-        ...card,
-        answered: false,
-        userAnswer: null,
-        correctAnswer: card.options.findIndex(opt => opt === card.answer)
-      }));
+    const fetchFlashcards = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await apiService.getFlashcards(demoMode, 'user_123');
+        if (response.data?.flashcards) {
+          let processedCards = response.data.flashcards.map(card => ({
+            ...card,
+            answered: false,
+            userAnswer: null,
+            correctAnswer: card.options.findIndex(opt => opt === card.answer)
+          }));
 
-      // If more than 5 cards, sort by confidence and take top 5
-      if (processedCards.length > 5) {
-        processedCards = processedCards
-          .sort((a, b) => (b.confidence_score || 0) - (a.confidence_score || 0))
-          .slice(0, 5);
+          // If more than 5 cards, sort by confidence and take top 5
+          if (processedCards.length > 5) {
+            processedCards = processedCards
+              .sort((a, b) => (b.confidence_score || 0) - (a.confidence_score || 0))
+              .slice(0, 5);
+          }
+
+          setCards(processedCards);
+          setCurrentCardIndex(0);
+          setIsFlipped(false);
+          setRating(null);
+          setSelectedAnswer(null);
+        }
+      } catch (err) {
+        setError('Failed to load flashcards');
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      setCards(processedCards);
-      setCurrentCardIndex(0);
-      setIsFlipped(false);
-      setRating(null);
-      setSelectedAnswer(null);
-    }
-  }, [flashcardsData]);
+    fetchFlashcards();
+  }, [demoMode]);
+
+  if (loading) return <div className="card"><LoadingSpinner /></div>;
+  if (error) return <div className="card"><ErrorMessage message={error} /></div>;
 
   if (!cards.length) {
     return (

@@ -1,7 +1,49 @@
+import { useState, useEffect } from 'react';
 import { AlertCircle, Lightbulb, TrendingUp, Sparkles } from 'lucide-react';
 import { mockAIInsights } from '../data/mockData';
+import { apiService } from '../services/api';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
 
-export default function AIInsights() {
+export default function AIInsights({ demoMode }) {
+  const [insights, setInsights] = useState(mockAIInsights);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [generating, setGenerating] = useState(false);
+
+  useEffect(() => {
+    const fetchInsights = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await apiService.getAIInsights(demoMode);
+        setInsights(response.data);
+      } catch (err) {
+        setError('Failed to load AI insights');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInsights();
+  }, [demoMode]);
+
+  const handleGenerateMore = async () => {
+    setGenerating(true);
+    try {
+      const response = await apiService.generateMoreInsights(demoMode, { insights });
+      setInsights([...insights, ...response.data]);
+    } catch (err) {
+      console.error('Failed to generate more insights:', err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  if (loading) return <div className="card"><LoadingSpinner /></div>;
+  if (error) return <div className="card"><ErrorMessage message={error} /></div>;
+
   const getIcon = (type) => {
     switch (type) {
       case 'alert':
@@ -35,12 +77,12 @@ export default function AIInsights() {
       </div>
 
       {/* Main Alert */}
-      <div className={`rounded-lg p-4 border mb-4 ${getBackgroundClass(mockAIInsights[0].type)}`}>
+      <div className={`rounded-lg p-4 border mb-4 ${getBackgroundClass(insights[0].type)}`}>
         <div className="flex items-start gap-3">
-          {getIcon(mockAIInsights[0].type)}
+          {getIcon(insights[0].type)}
           <div>
             <p className="text-sm font-medium text-white leading-relaxed">
-              {mockAIInsights[0].message}
+              {insights[0].message}
             </p>
           </div>
         </div>
@@ -53,7 +95,7 @@ export default function AIInsights() {
           Personalized Savings Opportunities
         </h3>
         
-        {mockAIInsights.slice(1).map((insight, index) => (
+        {insights.slice(1).map((insight, index) => (
           <div 
             key={index}
             className={`rounded-lg p-4 border ${getBackgroundClass(insight.type)} hover:border-primary/50 transition-colors cursor-pointer`}
@@ -83,7 +125,7 @@ export default function AIInsights() {
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-400">Potential Monthly Savings</span>
           <span className="text-xl font-bold text-success">
-            ${mockAIInsights
+            ${insights
               .filter(i => i.savings)
               .reduce((sum, i) => sum + i.savings, 0)}
           </span>
@@ -91,9 +133,22 @@ export default function AIInsights() {
       </div>
 
       {/* Action Button */}
-      <button className="w-full mt-4 btn-primary flex items-center justify-center gap-2">
-        <Sparkles className="w-4 h-4" />
-        Generate More Tips
+      <button 
+        onClick={handleGenerateMore}
+        disabled={generating}
+        className="w-full mt-4 btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        {generating ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Generating...
+          </>
+        ) : (
+          <>
+            <Sparkles className="w-4 h-4" />
+            Generate More Tips
+          </>
+        )}
       </button>
     </div>
   );

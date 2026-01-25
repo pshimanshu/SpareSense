@@ -1,10 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, Zap, Plus } from 'lucide-react';
 import { mockTransactions } from '../data/mockData';
+import { apiService } from '../services/api';
+import LoadingSpinner from './LoadingSpinner';
+import ErrorMessage from './ErrorMessage';
 
-export default function SavingsMeter() {
+export default function SavingsMeter({ demoMode }) {
   const [transactions, setTransactions] = useState(mockTransactions);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await apiService.getTransactions(demoMode);
+        setTransactions(response.data);
+      } catch (err) {
+        setError('Failed to load transactions');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [demoMode]);
 
   // Calculate totals
   const totalRoundUps = transactions.reduce((sum, tx) => sum + tx.roundUp, 0);
@@ -16,7 +39,7 @@ export default function SavingsMeter() {
   const progressPercent = (totalRoundUps / nextMilestone) * 100;
 
   // Simulate a new transaction
-  const simulateTransaction = () => {
+  const simulateTransaction = async () => {
     setIsSimulating(true);
     
     const merchants = ['Starbucks', 'Chipotle', 'Target', 'Gas Station', 'Grocery Store'];
@@ -25,20 +48,25 @@ export default function SavingsMeter() {
     const amount = parseFloat(randomAmount);
     const roundUp = parseFloat((Math.ceil(amount) - amount).toFixed(2));
 
-    const newTransaction = {
-      id: transactions.length + 1,
+    const newTransactionData = {
       merchant: merchants[Math.floor(Math.random() * merchants.length)],
       amount: amount,
       category: categories[Math.floor(Math.random() * categories.length)],
-      date: "2025-01-24",
-      roundUp: roundUp
     };
 
-    // Add to top of list
-    setTransactions([newTransaction, ...transactions]);
-
-    setTimeout(() => setIsSimulating(false), 1000);
+    try {
+      const response = await apiService.createTransaction(demoMode, newTransactionData);
+      // Add to top of list
+      setTransactions([response.data, ...transactions]);
+    } catch (err) {
+      console.error('Failed to create transaction:', err);
+    } finally {
+      setTimeout(() => setIsSimulating(false), 1000);
+    }
   };
+
+  if (loading) return <div className="card"><LoadingSpinner /></div>;
+  if (error) return <div className="card"><ErrorMessage message={error} /></div>;
 
   return (
     <div className="card">
