@@ -7,7 +7,7 @@ from .savings.schema.models import (
     BalanceResponse,
 )
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from fastapi.responses import HTMLResponse
