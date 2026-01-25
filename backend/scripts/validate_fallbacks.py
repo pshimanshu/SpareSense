@@ -14,6 +14,11 @@ Run from repo root:
 
 from __future__ import annotations
 
+import warnings
+
+# Silence noisy SSL backend warning from urllib3 on macOS system Python.
+warnings.filterwarnings("ignore", message="urllib3 v2 only supports OpenSSL*", category=Warning)
+
 import json
 import os
 import sys
@@ -54,4 +59,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
+import time
 from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
 
 from pydantic import ValidationError
 
@@ -15,6 +19,42 @@ class LlmParseError(RuntimeError):
 
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
+
+# In-memory cache to reduce rate-limit pressure during demos.
+# Keyed by a hash of prompt + payload + model config.
+_CACHE: Dict[str, Tuple[float, Any]] = {}
+
+
+def _cache_get(key: str) -> Optional[Any]:
+    item = _CACHE.get(key)
+    if not item:
+        return None
+    expires_at, value = item
+    if time.time() >= expires_at:
+        _CACHE.pop(key, None)
+        return None
+    # Return a defensive copy if it's a Pydantic model.
+    if hasattr(value, "model_copy"):
+        return value.model_copy(deep=True)
+    return value
+
+
+def _cache_set(key: str, value: Any, *, ttl_s: float) -> None:
+    if ttl_s <= 0:
+        return
+    _CACHE[key] = (time.time() + ttl_s, value)
+
+
+def _cache_ttl_s_from_env() -> float:
+    """
+    How long to cache successful Gemini responses in-memory.
+    Helps avoid hitting free-tier rate limits during iterative dev/demo.
+    """
+    val = (os.getenv("GEMINI_CACHE_TTL_S", "600") or "600").strip()
+    try:
+        return float(val)
+    except ValueError:
+        return 600.0
 
 
 def _load_prompt(name: str) -> str:
@@ -83,10 +123,27 @@ def _generate_and_validate_json(
         flashcard_count=payload.constraints.flashcard_count,
     )
 
+    # Cache key: include model + prompt name + rendered prompt (which includes counts and input JSON).
+    cache_ttl_s = _cache_ttl_s_from_env()
+
+    h = hashlib.sha256()
+    h.update(cfg.model.encode("utf-8"))
+    h.update(b"\n")
+    h.update(prompt_name.encode("utf-8"))
+    h.update(b"\n")
+    h.update(prompt.encode("utf-8"))
+    cache_key = h.hexdigest()
+
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     raw_1 = generate_text(prompt, cfg=cfg)
     try:
         json_1 = _extract_json(raw_1)
-        return validator(json_1)
+        validated = validator(json_1)
+        _cache_set(cache_key, validated, ttl_s=cache_ttl_s)
+        return validated
     except (LlmParseError, ValidationError):
         # One retry: ask Gemini to re-emit a complete JSON object matching the contract.
         repair_prompt = (
@@ -101,7 +158,9 @@ def _generate_and_validate_json(
         )
         raw_2 = generate_text(repair_prompt, cfg=cfg)
         json_2 = _extract_json(raw_2)
-        return validator(json_2)
+        validated = validator(json_2)
+        _cache_set(cache_key, validated, ttl_s=cache_ttl_s)
+        return validated
 
 
 def generate_savings_tips(payload: AiSpendingSummaryRequest) -> AiSavingsTipsResponse:

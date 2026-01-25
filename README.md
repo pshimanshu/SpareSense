@@ -126,6 +126,7 @@ Environment variables (Gemini):
 - `GEMINI_MAX_OUTPUT_TOKENS` (optional, default 2048)
 - `GEMINI_MAX_RETRIES` (optional, default 1; retries on HTTP 429 rate limits)
 - `GEMINI_MAX_RETRY_SLEEP_S` (optional, default 10; caps sleep time per retry)
+- `GEMINI_CACHE_TTL_S` (optional, default 600; caches successful Gemini responses in-memory to reduce rate limits)
 - `GEMINI_REQUIRED` (optional; if set, the in-process test expects Gemini output and fails if fallback is used)
 
 ---
@@ -155,6 +156,12 @@ Validate the deterministic fallbacks + contract offline (no server, no Gemini):
 
 ```bash
 python3 backend/scripts/validate_fallbacks.py
+```
+
+Run lightweight unit tests (contract validation + endpoint responses):
+
+```bash
+python3 -m unittest discover -s backend/tests
 ```
 
 Or manual curl (uses `backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json` as the request body):
