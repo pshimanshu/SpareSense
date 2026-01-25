@@ -26,7 +26,7 @@ SchemaVersion = Literal["1.0"]
 class UserContext(BaseModel):
     user_id: str = Field(..., examples=["alex_demo"])
     currency: str = Field(default="USD", examples=["USD"])
-    timezone: Optional[str] = Field(default=None, examples=["America/Florida"])
+    timezone: Optional[str] = Field(default=None, examples=["America/New_York"])
 
 
 class Period(BaseModel):
