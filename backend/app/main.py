@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from fastapi.responses import HTMLResponse
 import requests
@@ -8,6 +9,19 @@ from dotenv import load_dotenv
 import os
 
 app = FastAPI(title="FinWise API")
+
+# Configure CORS to allow frontend requests
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://finwise-seven-tau.vercel.app",  # Your production frontend
+        "http://localhost:5173",  # Local development
+        "http://localhost:5174",  # Alternative local port
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Replace with your actual API key from your Nessie profile
 load_dotenv()
