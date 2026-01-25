@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from typing import Optional
 from fastapi.responses import HTMLResponse
 import requests
 from pydantic import BaseModel
@@ -135,7 +136,7 @@ async def create_customer(customer: Customer):
         return response.json()
 
 @app.get("/view-purchases", response_class=HTMLResponse)
-async def get_all_purchases_table():
+async def view_purchases_html():
     try:
         # 1. Get all customers
         customers = requests.get(f"{BASE_URL}/customers?key={NESSIE_API_KEY}").json()
@@ -295,30 +296,34 @@ async def get_interactive_dashboard():
         return HTMLResponse(content=f"Error: {e}", status_code=500)
 
 @app.get("/transactions-by-customer")
-async def get_customers_array():
+async def get_customers_with_transactions(name: Optional[str] = Query(None, description="Filter by customer name")):
     try:
-        # 1. Fetch Merchants (mapping)
+        # 1. Fetch Merchants (for mapping)
         merch_data = requests.get(f"{BASE_URL}/merchants?key={NESSIE_API_KEY}").json()
         merchants = {m['_id']: m['name'] for m in merch_data}
 
         # 2. Fetch Customers
         customers = requests.get(f"{BASE_URL}/customers?key={NESSIE_API_KEY}").json()
         
-        # 3. Build the Array (List)
         final_list = []
 
         for cust in customers:
-            c_id = cust['_id']
             full_name = f"{cust['first_name']} {cust['last_name']}"
             
-            # Fetch Accounts
+            # --- FILTER LOGIC ---
+            # If a name query is provided, skip customers that don't match
+            if name and name.lower() not in full_name.lower():
+                continue
+
+            c_id = cust['_id']
+            
+            # Fetch Accounts and Purchases
             acc_res = requests.get(f"{BASE_URL}/customers/{c_id}/accounts?key={NESSIE_API_KEY}").json()
             
             customer_purchases = []
             if acc_res:
                 for acc in acc_res:
                     p_res = requests.get(f"{BASE_URL}/accounts/{acc['_id']}/purchases?key={NESSIE_API_KEY}").json()
-                    
                     for p in p_res:
                         customer_purchases.append({
                             "purchase_id": p.get("_id"),
@@ -328,7 +333,6 @@ async def get_customers_array():
                             "date": p.get('purchase_date'),
                         })
 
-            # Create the object and append to our final array
             final_list.append({
                 "name": full_name,
                 "customer_id": c_id,

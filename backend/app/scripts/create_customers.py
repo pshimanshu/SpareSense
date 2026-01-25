@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import os
 
 # Configuration
+load_dotenv()
 API_KEY = os.getenv("NESSIE_API_KEY")
 BASE_URL = f"http://api.nessieisreal.com/customers?key={API_KEY}"
 

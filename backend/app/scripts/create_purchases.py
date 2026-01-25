@@ -60,7 +60,7 @@ def run_simulation():
         else: # Reckless
             items = [("Coffee", 3.50, 9.75), ("Fast Food", 8.25, 22.40), ("Entertainment", 15.00, 45.00)]
 
-        print(f"\nSTARTING: {name} ({persona}) - Creating 25 transactions...")
+        print(f"\nSTARTING: {name} ({persona}) - Creating transactions...")
 
         # --- BLOCK 4: CREATE 25 PURCHASES ---
         for i in range(random.randint(2, 15)):
@@ -82,11 +82,11 @@ def run_simulation():
             try:
                 res = requests.post(f"{BASE_URL}/accounts/{acc_id}/purchases?key={API_KEY}", json=payload, timeout=5)
                 if res.status_code == 201:
-                    print(f"  [{i+1}/25] Success: ${amt:.2f} at {merchant['name']}")
+                    print(f"  [{i+1}] Success: ${amt:.2f} at {merchant['name']}")
                 else:
-                    print(f"  [{i+1}/25] Rejected: {res.status_code}")
+                    print(f"  [{i+1}] Rejected: {res.status_code}")
             except Exception as e:
-                print(f"  [{i+1}/25] ERROR: {e}")
+                print(f"  [{i+1}] ERROR: {e}")
             
             # Small sleep to keep API calls stable
             time.sleep(0.05)
