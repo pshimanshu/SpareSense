@@ -11,6 +11,7 @@ Run from repo root:
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -28,6 +29,10 @@ def main() -> int:
     from backend.app.ai.schemas import AiFlashcardsResponse, AiSavingsTipsResponse
     from backend.app.main import app
 
+    # If GEMINI_API_KEY is set, we expect Gemini to be used. If it's not set,
+    # we expect deterministic fallback output.
+    expect_gemini = bool(os.getenv("GEMINI_API_KEY", "").strip())
+
     req_path = _repo_root() / "backend/app/ai/SampleSchemas/AiSpendingSummaryRequest.json"
     payload = json.loads(req_path.read_text(encoding="utf-8"))
 
@@ -41,7 +46,27 @@ def main() -> int:
     assert cards_r.status_code == 200, cards_r.text
     cards = AiFlashcardsResponse.model_validate(cards_r.json())
 
+    if expect_gemini:
+        assert tips.meta.fallback_used is False and tips.meta.generated_by == "gemini", (
+            "Expected Gemini output for /ai/savings-tips because GEMINI_API_KEY is set. "
+            f"Got fallback_used={tips.meta.fallback_used} generated_by={tips.meta.generated_by!r}"
+        )
+        assert cards.meta.fallback_used is False and cards.meta.generated_by == "gemini", (
+            "Expected Gemini output for /ai/flashcards because GEMINI_API_KEY is set. "
+            f"Got fallback_used={cards.meta.fallback_used} generated_by={cards.meta.generated_by!r}"
+        )
+    else:
+        assert tips.meta.fallback_used is True and tips.meta.generated_by == "fallback", (
+            "Expected fallback output for /ai/savings-tips because GEMINI_API_KEY is not set. "
+            f"Got fallback_used={tips.meta.fallback_used} generated_by={tips.meta.generated_by!r}"
+        )
+        assert cards.meta.fallback_used is True and cards.meta.generated_by == "fallback", (
+            "Expected fallback output for /ai/flashcards because GEMINI_API_KEY is not set. "
+            f"Got fallback_used={cards.meta.fallback_used} generated_by={cards.meta.generated_by!r}"
+        )
+
     print("OK")
+    print(f"- expect_gemini={expect_gemini}")
     print(f"- /ai/savings-tips: tips={len(tips.tips)} fallback_used={tips.meta.fallback_used} generated_by={tips.meta.generated_by}")
     print(
         f"- /ai/flashcards: flashcards={len(cards.flashcards)} fallback_used={cards.meta.fallback_used} generated_by={cards.meta.generated_by}"
@@ -51,4 +76,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
