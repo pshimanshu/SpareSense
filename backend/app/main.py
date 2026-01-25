@@ -16,6 +16,7 @@ from pydantic import BaseModel
 import httpx
 from dotenv import load_dotenv 
 import os
+import random
 
 app = FastAPI(title="FinWise API")
 
