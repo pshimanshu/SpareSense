@@ -14,7 +14,8 @@ class GeminiError(RuntimeError):
 @dataclass(frozen=True)
 class GeminiConfig:
     api_key: str
-    model: str = "gemini-1.5-flash"
+    # Prefer a stable, broadly available model name. (ListModels can confirm availability.)
+    model: str = "gemini-2.0-flash"
     base_url: str = "https://generativelanguage.googleapis.com/v1beta"
     timeout_s: float = 20.0
     temperature: float = 0.4
@@ -26,7 +27,7 @@ def load_gemini_config_from_env() -> GeminiConfig:
     if not api_key:
         raise GeminiError("GEMINI_API_KEY is not set")
 
-    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash").strip() or "gemini-1.5-flash"
+    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash").strip() or "gemini-2.0-flash"
     base_url = os.getenv("GEMINI_BASE_URL", "https://generativelanguage.googleapis.com/v1beta").strip()
 
     # Keep parsing conservative; these are optional knobs for local tuning.
@@ -62,7 +63,12 @@ def generate_text(prompt: str, *, cfg: GeminiConfig) -> str:
     """
     Calls Gemini (Generative Language API) and returns the model's plain text.
     """
-    url = f"{cfg.base_url}/models/{cfg.model}:generateContent"
+    model = cfg.model.strip()
+    # Accept either "gemini-2.0-flash" or the fully qualified "models/gemini-2.0-flash".
+    if not model.startswith("models/"):
+        model = f"models/{model}"
+
+    url = f"{cfg.base_url}/{model}:generateContent"
     params = {"key": cfg.api_key}
 
     body: dict[str, Any] = {
@@ -76,7 +82,8 @@ def generate_text(prompt: str, *, cfg: GeminiConfig) -> str:
     try:
         resp = requests.post(url, params=params, json=body, timeout=cfg.timeout_s)
     except requests.RequestException as e:
-        raise GeminiError(f"Gemini request failed: {e}") from e
+        # Avoid leaking the API key via URLs inside exception strings.
+        raise GeminiError(f"Gemini request failed (network error): {type(e).__name__}") from e
 
     if resp.status_code >= 400:
         raise GeminiError(f"Gemini HTTP {resp.status_code}: {resp.text[:500]}")
@@ -99,4 +106,3 @@ def generate_text(prompt: str, *, cfg: GeminiConfig) -> str:
         raise GeminiError("Gemini returned empty text")
 
     return text
-

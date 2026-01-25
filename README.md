@@ -119,7 +119,7 @@ Implementation notes:
 
 Environment variables (Gemini):
 - `GEMINI_API_KEY` (required to enable Gemini; if missing, backend falls back deterministically)
-- `GEMINI_MODEL` (optional, default `gemini-1.5-flash`)
+- `GEMINI_MODEL` (optional, default `gemini-2.0-flash`)
 - `GEMINI_BASE_URL` (optional, default `https://generativelanguage.googleapis.com/v1beta`)
 - `GEMINI_TIMEOUT_S` (optional)
 - `GEMINI_TEMPERATURE` (optional)
