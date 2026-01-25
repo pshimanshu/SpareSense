@@ -61,10 +61,19 @@ def _extract_json(text: str) -> str:
     return t[start : end + 1].strip()
 
 
-def generate_savings_tips(payload: AiSpendingSummaryRequest) -> AiSavingsTipsResponse:
+def _generate_and_validate_json(
+    *,
+    payload: AiSpendingSummaryRequest,
+    prompt_name: str,
+    validator,
+    repair_label: str,
+):
+    """
+    Produce contract-valid JSON from Gemini with one repair retry.
+    """
     cfg = load_gemini_config_from_env()
 
-    template = _load_prompt("savings_tips.txt")
+    template = _load_prompt(prompt_name)
     # Keep the model input compact to avoid prompt bloat and token-limit truncation.
     input_json = payload.model_dump_json(exclude_none=True)
     prompt = _render_prompt(
@@ -74,12 +83,36 @@ def generate_savings_tips(payload: AiSpendingSummaryRequest) -> AiSavingsTipsRes
         flashcard_count=payload.constraints.flashcard_count,
     )
 
-    raw = generate_text(prompt, cfg=cfg)
-    json_str = _extract_json(raw)
-
+    raw_1 = generate_text(prompt, cfg=cfg)
     try:
-        resp = AiSavingsTipsResponse.model_validate_json(json_str)
-    except ValidationError as e:
+        json_1 = _extract_json(raw_1)
+        return validator(json_1)
+    except (LlmParseError, ValidationError):
+        # One retry: ask Gemini to re-emit a complete JSON object matching the contract.
+        repair_prompt = (
+            "Return ONLY valid JSON (no markdown/backticks). Output MUST be a complete JSON object.\n"
+            "Your previous output was invalid, incomplete, or did not match the contract.\n\n"
+            f"Task: output a valid {repair_label} JSON object.\n"
+            f"Counts: tip_count={payload.constraints.tip_count}, flashcard_count={payload.constraints.flashcard_count}\n\n"
+            "Input JSON (source of truth):\n"
+            f"{input_json}\n\n"
+            "Previous output to fix (may be incomplete):\n"
+            f"{raw_1}\n"
+        )
+        raw_2 = generate_text(repair_prompt, cfg=cfg)
+        json_2 = _extract_json(raw_2)
+        return validator(json_2)
+
+
+def generate_savings_tips(payload: AiSpendingSummaryRequest) -> AiSavingsTipsResponse:
+    try:
+        resp = _generate_and_validate_json(
+            payload=payload,
+            prompt_name="savings_tips.txt",
+            validator=AiSavingsTipsResponse.model_validate_json,
+            repair_label="AiSavingsTipsResponse",
+        )
+    except (ValidationError, LlmParseError) as e:
         raise LlmParseError(f"Gemini output failed schema validation: {e}") from e
 
     # Ensure meta is consistent even if the model deviates.
@@ -89,23 +122,14 @@ def generate_savings_tips(payload: AiSpendingSummaryRequest) -> AiSavingsTipsRes
 
 
 def generate_flashcards(payload: AiSpendingSummaryRequest) -> AiFlashcardsResponse:
-    cfg = load_gemini_config_from_env()
-
-    template = _load_prompt("flashcards.txt")
-    input_json = payload.model_dump_json(exclude_none=True)
-    prompt = _render_prompt(
-        template,
-        input_json=input_json,
-        tip_count=payload.constraints.tip_count,
-        flashcard_count=payload.constraints.flashcard_count,
-    )
-
-    raw = generate_text(prompt, cfg=cfg)
-    json_str = _extract_json(raw)
-
     try:
-        resp = AiFlashcardsResponse.model_validate_json(json_str)
-    except ValidationError as e:
+        resp = _generate_and_validate_json(
+            payload=payload,
+            prompt_name="flashcards.txt",
+            validator=AiFlashcardsResponse.model_validate_json,
+            repair_label="AiFlashcardsResponse",
+        )
+    except (ValidationError, LlmParseError) as e:
         raise LlmParseError(f"Gemini output failed schema validation: {e}") from e
 
     resp.meta.generated_by = "gemini"

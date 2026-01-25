@@ -124,6 +124,8 @@ Environment variables (Gemini):
 - `GEMINI_TIMEOUT_S` (optional)
 - `GEMINI_TEMPERATURE` (optional, default 0.2)
 - `GEMINI_MAX_OUTPUT_TOKENS` (optional, default 2048)
+- `GEMINI_MAX_RETRIES` (optional, default 1; retries on HTTP 429 rate limits)
+- `GEMINI_MAX_RETRY_SLEEP_S` (optional, default 10; caps sleep time per retry)
 - `GEMINI_REQUIRED` (optional; if set, the in-process test expects Gemini output and fails if fallback is used)
 
 ---
