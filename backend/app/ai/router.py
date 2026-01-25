@@ -6,7 +6,8 @@ from fastapi import APIRouter
 from fastapi import Header
 
 from .fallbacks import flashcards_fallback, savings_tips_fallback
-from .llm_service import GeminiError, LlmParseError, generate_flashcards, generate_savings_tips
+from .gemini_client import GeminiError
+from .llm_service import LlmParseError, generate_flashcards, generate_savings_tips
 from .precomputed_store import load_precomputed_flashcards, load_precomputed_savings_tips
 from .schemas import AiFlashcardsResponse, AiSpendingSummaryRequest, AiSavingsTipsResponse
 
