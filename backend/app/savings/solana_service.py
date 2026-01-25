@@ -9,6 +9,7 @@ from solders.pubkey import Pubkey
 from solders.system_program import transfer as solders_transfer, TransferParams as SoldersTransferParams
 from solders.transaction import VersionedTransaction
 from solders.message import MessageV0
+from dotenv import load_dotenv
 from datetime import datetime
 import re
 
@@ -24,13 +25,15 @@ class SolanaService:
         self.main_keypair = self._load_bank_keypair()
 
     def _load_bank_keypair(self) -> Keypair:
-        """Load the main wallet keypair from wallet-keypair.json"""
-        try:
-            with open("../wallet-keypair.json", "r") as f:
-                keypair_data = json.load(f)
-                return Keypair.from_bytes(bytes(keypair_data))
-        except Exception as e:
-            raise Exception(f"Failed to load main wallet keypair: {e}")
+        """Load the main wallet keypair from env variable"""
+        load_dotenv()
+        keypair_data = os.environ.get("SOLANA_MAIN_WALLET_PRIVATE_KEY")
+        if keypair_data:
+            try:
+                keypair_list = json.loads(keypair_data)
+                return Keypair.from_bytes(bytes(keypair_list))
+            except Exception as e:
+                raise Exception(f"Failed to load main wallet keypair from env: {e}")
 
     def create_user_wallet(self, user_id: str) -> Dict[str, Any]:
         """
