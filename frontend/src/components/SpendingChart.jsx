@@ -15,7 +15,10 @@ export default function SpendingChart({ demoMode, customerName }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await apiService.getSpendingBreakdown(demoMode, customerName);
+        // In demo mode, pass empty string to use mock data
+        // In live mode, pass customerName
+        const nameParam = demoMode ? '' : customerName;
+        const response = await apiService.getSpendingBreakdown(demoMode, nameParam);
         setSpendingData(response.data);
       } catch (err) {
         setError('Failed to load spending data');
@@ -33,6 +36,51 @@ export default function SpendingChart({ demoMode, customerName }) {
 
   const totalSpending = spendingData.reduce((sum, item) => sum + item.amount, 0);
 
+  // Color palette for categories
+  const categoryColors = [
+    '#F59E0B', // Amber
+    '#EC4899', // Pink
+    '#8B5CF6', // Purple
+    '#10B981', // Emerald
+    '#3B82F6', // Blue
+    '#EF4444', // Red
+    '#14B8A6', // Teal
+  ];
+
+  // Keep max 7 categories, combine smallest ones if more than 7
+  const processedData = (() => {
+    if (spendingData.length <= 7) {
+      // If 7 or fewer categories, keep all and assign colors
+      return spendingData.map((item, index) => ({
+        ...item,
+        amount: parseFloat(item.amount.toFixed(2)),
+        color: categoryColors[index % categoryColors.length]
+      }));
+    }
+
+    // Sort by amount descending
+    const sorted = [...spendingData].sort((a, b) => b.amount - a.amount);
+    
+    // Keep top 6 categories
+    const topCategories = sorted.slice(0, 6).map((item, index) => ({
+      ...item,
+      amount: parseFloat(item.amount.toFixed(2)),
+      color: categoryColors[index]
+    }));
+    
+    // Combine remaining into Misc
+    const remaining = sorted.slice(6);
+    const miscAmount = remaining.reduce((sum, item) => sum + item.amount, 0);
+    
+    topCategories.push({
+      category: 'Misc',
+      amount: parseFloat(miscAmount.toFixed(2)),
+      color: categoryColors[6]
+    });
+
+    return topCategories;
+  })();
+
   // Custom tooltip
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -41,7 +89,7 @@ export default function SpendingChart({ demoMode, customerName }) {
       return (
         <div className="bg-dark-card border border-dark-border rounded-lg p-3 shadow-lg">
           <p className="font-semibold text-white">{data.name}</p>
-          <p className="text-success font-bold">${data.value}</p>
+          <p className="text-success font-bold">${data.value.toFixed(2)}</p>
           <p className="text-gray-400 text-sm">{percentage}% of spending</p>
         </div>
       );
@@ -51,18 +99,23 @@ export default function SpendingChart({ demoMode, customerName }) {
 
   // Custom label to show percentage on chart
   const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    // Position label in the middle of the slice
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.6;
     const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+
+    // Only show label if percentage is above 5% to avoid clutter
+    if (percent < 0.05) return null;
 
     return (
       <text 
         x={x} 
         y={y} 
         fill="white" 
-        textAnchor={x > cx ? 'start' : 'end'} 
+        textAnchor="middle" 
         dominantBaseline="central"
-        className="text-sm font-semibold"
+        className="text-sm font-bold"
+        style={{ pointerEvents: 'none' }}
       >
         {`${(percent * 100).toFixed(0)}%`}
       </text>
@@ -76,14 +129,14 @@ export default function SpendingChart({ demoMode, customerName }) {
       {/* Total Spending */}
       <div className="text-center mb-6">
         <p className="text-gray-400 text-sm">Last 30 Days</p>
-        <p className="text-3xl font-bold text-white">${totalSpending}</p>
+        <p className="text-3xl font-bold text-white">${totalSpending.toFixed(2)}</p>
       </div>
 
       {/* Pie Chart */}
       <ResponsiveContainer width="100%" height={250}>
         <PieChart>
           <Pie
-            data={spendingData}
+            data={processedData}
             cx="50%"
             cy="50%"
             labelLine={false}
@@ -94,7 +147,7 @@ export default function SpendingChart({ demoMode, customerName }) {
             dataKey="amount"
             nameKey="category"
           >
-            {spendingData.map((entry, index) => (
+            {processedData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
@@ -104,7 +157,7 @@ export default function SpendingChart({ demoMode, customerName }) {
 
       {/* Legend with amounts */}
       <div className="mt-6 space-y-2">
-        {spendingData.map((item) => (
+        {processedData.map((item) => (
           <div key={item.category} className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div 
@@ -113,7 +166,7 @@ export default function SpendingChart({ demoMode, customerName }) {
               />
               <span className="text-sm text-gray-300">{item.category}</span>
             </div>
-            <span className="font-semibold text-white">${item.amount}</span>
+            <span className="font-semibold text-white">${item.amount.toFixed(2)}</span>
           </div>
         ))}
       </div>

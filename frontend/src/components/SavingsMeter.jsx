@@ -5,34 +5,49 @@ import { apiService } from '../services/api';
 import LoadingSpinner from './LoadingSpinner';
 import ErrorMessage from './ErrorMessage';
 
-export default function SavingsMeter({ demoMode, customerName }) {
-  const [transactions, setTransactions] = useState(mockTransactions);
+export default function SavingsMeter({ demoMode, customerName, transactions: propTransactions, onTransactionsUpdate }) {
+  const [transactions, setTransactions] = useState(propTransactions || []);
   const [isSimulating, setIsSimulating] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Update local state when prop changes
   useEffect(() => {
-    const fetchTransactions = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await apiService.getTransactions(demoMode, customerName);
-        setTransactions(response.data);
-      } catch (err) {
-        setError('Failed to load transactions');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (propTransactions) {
+      setTransactions(propTransactions);
+    }
+  }, [propTransactions]);
 
-    fetchTransactions();
-  }, [demoMode, customerName]);
+  // Only fetch if no transactions provided via props
+  useEffect(() => {
+    if (!propTransactions || propTransactions.length === 0) {
+      const fetchTransactions = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const nameParam = demoMode ? '' : customerName;
+          const response = await apiService.getTransactions(demoMode, nameParam);
+          setTransactions(response.data);
+          if (onTransactionsUpdate) {
+            onTransactionsUpdate(response.data);
+          }
+        } catch (err) {
+          setError('Failed to load transactions');
+          console.error(err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchTransactions();
+    }
+  }, [demoMode, customerName, propTransactions, onTransactionsUpdate]);
 
   // Calculate totals
-  const totalRoundUps = transactions.reduce((sum, tx) => sum + tx.roundUp, 0);
-  const todayTransactions = transactions.filter(tx => tx.date === "2025-01-23");
-  const todayRoundUps = todayTransactions.reduce((sum, tx) => sum + tx.roundUp, 0);
+  const totalRoundUps = transactions.reduce((sum, tx) => sum + (tx.roundUp || 0), 0);
+  const today = new Date().toISOString().split('T')[0];
+  const todayTransactions = transactions.filter(tx => tx.date === today);
+  const todayRoundUps = todayTransactions.reduce((sum, tx) => sum + (tx.roundUp || 0), 0);
 
   // Progress to next $5 milestone
   const nextMilestone = Math.max(5, Math.ceil(totalRoundUps / 5) * 5);
@@ -56,8 +71,20 @@ export default function SavingsMeter({ demoMode, customerName }) {
 
     try {
       const response = await apiService.createTransaction(demoMode, newTransactionData);
-      // Add to top of list
-      setTransactions([response.data, ...transactions]);
+      // Ensure the response has all needed fields
+      const newTransaction = {
+        ...response.data,
+        merchant: response.data.merchant || response.data.merchant_name || newTransactionData.merchant,
+        category: response.data.category || response.data.description || newTransactionData.category,
+        roundUp: response.data.roundUp || roundUp,
+        date: response.data.date || today
+      };
+      // Update both local and parent state
+      const updatedTransactions = [newTransaction, ...transactions];
+      setTransactions(updatedTransactions);
+      if (onTransactionsUpdate) {
+        onTransactionsUpdate(updatedTransactions);
+      }
     } catch (err) {
       console.error('Failed to create transaction:', err);
     } finally {
@@ -72,23 +99,25 @@ export default function SavingsMeter({ demoMode, customerName }) {
     <div className="card">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-lg font-semibold">💸 Microsavings Meter</h2>
-        <button
-          onClick={simulateTransaction}
-          disabled={isSimulating}
-          className="btn-primary flex items-center gap-2 disabled:opacity-50"
-        >
-          {isSimulating ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Plus className="w-4 h-4" />
-              Simulate Transaction
-            </>
-          )}
-        </button>
+        {demoMode && (
+          <button
+            onClick={simulateTransaction}
+            disabled={isSimulating}
+            className="btn-primary flex items-center gap-2 disabled:opacity-50"
+          >
+            {isSimulating ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" />
+                Simulate Transaction
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -156,7 +185,7 @@ export default function SavingsMeter({ demoMode, customerName }) {
         <div className="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
           {transactions.slice(0, 8).map((tx, index) => (
             <div 
-              key={tx.id}
+              key={tx.purchase_id || tx.id || `tx-${index}`}
               className={`flex items-center justify-between p-3 rounded-lg border border-dark-border hover:border-primary/30 transition-all ${
                 index === 0 && isSimulating ? 'animate-slideIn bg-primary/10' : 'bg-dark-card'
               }`}

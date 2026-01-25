@@ -5,15 +5,27 @@ export const mockUser = {
   weekSaved: 12.84
 };
 
+// Generate dates spread over the last 7 days
+const getDateDaysAgo = (daysAgo) => {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  return date.toISOString().split('T')[0];
+};
+
 export const mockTransactions = [
-  { id: 1, merchant: "Starbucks", amount: 4.35, category: "Coffee", date: "2025-01-23", roundUp: 0.65 },
-  { id: 2, merchant: "Uber Eats", amount: 18.20, category: "Food Delivery", date: "2025-01-23", roundUp: 0.80 },
-  { id: 3, merchant: "Netflix", amount: 15.99, category: "Subscriptions", date: "2025-01-22", roundUp: 0.01 },
-  { id: 4, merchant: "Chipotle", amount: 12.47, category: "Food Delivery", date: "2025-01-22", roundUp: 0.53 },
-  { id: 5, merchant: "Starbucks", amount: 5.82, category: "Coffee", date: "2025-01-21", roundUp: 0.18 },
-  { id: 6, merchant: "Amazon Prime", amount: 14.99, category: "Subscriptions", date: "2025-01-20", roundUp: 0.01 },
-  { id: 7, merchant: "DoorDash", amount: 23.15, category: "Food Delivery", date: "2025-01-20", roundUp: 0.85 },
-  { id: 8, merchant: "Spotify", amount: 10.99, category: "Subscriptions", date: "2025-01-19", roundUp: 0.01 },
+  { id: 1, merchant: "Starbucks", amount: 4.35, category: "Coffee", date: getDateDaysAgo(0), roundUp: 0.65 },
+  { id: 2, merchant: "Uber Eats", amount: 18.20, category: "Food Delivery", date: getDateDaysAgo(0), roundUp: 0.80 },
+  { id: 3, merchant: "Netflix", amount: 15.99, category: "Subscriptions", date: getDateDaysAgo(1), roundUp: 0.01 },
+  { id: 4, merchant: "Chipotle", amount: 12.47, category: "Food Delivery", date: getDateDaysAgo(2), roundUp: 0.53 },
+  { id: 5, merchant: "Starbucks", amount: 5.82, category: "Coffee", date: getDateDaysAgo(3), roundUp: 0.18 },
+  { id: 6, merchant: "Amazon Prime", amount: 14.99, category: "Subscriptions", date: getDateDaysAgo(4), roundUp: 0.01 },
+  { id: 7, merchant: "DoorDash", amount: 23.15, category: "Food Delivery", date: getDateDaysAgo(5), roundUp: 0.85 },
+  { id: 8, merchant: "Spotify", amount: 10.99, category: "Subscriptions", date: getDateDaysAgo(6), roundUp: 0.01 },
+  { id: 9, merchant: "Target", amount: 45.67, category: "Shopping", date: getDateDaysAgo(7), roundUp: 0.33 },
+  { id: 10, merchant: "Whole Foods", amount: 67.89, category: "Groceries", date: getDateDaysAgo(8), roundUp: 0.11 },
+  { id: 11, merchant: "Starbucks", amount: 6.25, category: "Coffee", date: getDateDaysAgo(9), roundUp: 0.75 },
+  { id: 12, merchant: "Shell Gas", amount: 52.34, category: "Gas", date: getDateDaysAgo(10), roundUp: 0.66 },
+  { id: 13, merchant: "McDonald's", amount: 8.99, category: "Food", date: getDateDaysAgo(11), roundUp: 0.01 },
 ];
 
 export const mockSpendingData = [
