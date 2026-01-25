@@ -7,7 +7,7 @@ from .savings.schema.models import (
     BalanceResponse,
 )
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from fastapi.responses import HTMLResponse
@@ -434,3 +434,31 @@ async def get_customers_with_transactions(name: Optional[str] = Query(None, desc
 
     except Exception as e:
         return {"error": str(e)}
+
+@app.get("/accounts/{account_id}/purchases")
+async def get_account_purchases(
+    account_id: str = Path(..., description="The ID of the account to fetch purchases for")
+):
+    """
+    Directly returns the raw purchase array from the Nessie API.
+    """
+    url = f"{BASE_URL}/accounts/{account_id}/purchases?key={NESSIE_API_KEY}"
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, timeout=10.0)
+            
+            # Forward the exact status code and JSON body from Nessie
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code, 
+                    detail=response.text
+                )
+                
+            return response.json()
+
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=503, 
+                detail=f"Communication error with Nessie: {str(exc)}"
+            )
