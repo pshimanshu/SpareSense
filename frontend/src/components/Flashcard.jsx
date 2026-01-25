@@ -19,7 +19,8 @@ export default function Flashcard({ demoMode }) {
       setLoading(true);
       setError(null);
       try {
-        const response = await apiService.getFlashcards(demoMode, 'user_123');
+        // Use the seeded demo user id so the backend can serve precomputed outputs by default.
+        const response = await apiService.getFlashcards(demoMode, 'alex_demo');
         if (response.data?.flashcards) {
           let processedCards = response.data.flashcards.map(card => ({
             ...card,

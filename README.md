@@ -62,9 +62,9 @@ cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+python3 -m uvicorn backend.app.main:app --reload --port 5050
 ```
-Backend runs at `http://localhost:8000`.
+Backend runs at `http://localhost:5050`.
 
 ### Frontend Setup
 ```bash
@@ -166,7 +166,7 @@ Start the FastAPI server (from repo root):
 
 ```bash
 python3 -m pip install -r backend/requirements.txt
-python3 -m uvicorn backend.app.main:app --reload
+python3 -m uvicorn backend.app.main:app --reload --port 5050
 ```
 
 Hackathon demo quickstart (recommended: no live Gemini dependency):

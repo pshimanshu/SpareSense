@@ -7,17 +7,29 @@ set -euo pipefail
 # Usage:
 #   bash backend/scripts/hackathon_check.sh
 
+PY="${PYTHON:-}"
+if [[ -z "$PY" ]]; then
+  if [[ -x "backend/.venv/bin/python" ]]; then
+    PY="backend/.venv/bin/python"
+  elif [[ -x "backend/venv/bin/python" ]]; then
+    PY="backend/venv/bin/python"
+  else
+    PY="python3"
+  fi
+fi
+
+export PYTHONDONTWRITEBYTECODE=1
+
 echo "==> Offline fallback + contract validation"
-backend/.venv/bin/python backend/scripts/validate_fallbacks.py
+"$PY" backend/scripts/validate_fallbacks.py
 echo
 
 echo "==> In-process API smoke test"
-backend/.venv/bin/python backend/scripts/test_api_inprocess.py
+"$PY" backend/scripts/test_api_inprocess.py
 echo
 
 echo "==> Unit tests"
-backend/.venv/bin/python -m unittest discover -s backend/tests
+"$PY" -m unittest discover -s backend/tests
 echo
 
 echo "OK: hackathon checks passed"
-

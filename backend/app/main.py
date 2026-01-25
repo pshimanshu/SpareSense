@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import asyncio
 from pathlib import Path
 from typing import Any, Optional
 
@@ -54,7 +55,12 @@ async def _nessie_get(client: httpx.AsyncClient, path: str, *, params: Optional[
     p = {"key": key}
     if params:
         p.update(params)
-    resp = await client.get(path, params=p)
+    try:
+        resp = await client.get(path, params=p)
+    except httpx.TimeoutException as e:
+        raise HTTPException(status_code=504, detail="Nessie request timed out") from e
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail="Nessie request failed") from e
     if resp.status_code >= 400:
         raise HTTPException(status_code=resp.status_code, detail=resp.text[:500])
     return resp.json()
@@ -67,7 +73,12 @@ async def _nessie_post(
     p = {"key": key}
     if params:
         p.update(params)
-    resp = await client.post(path, params=p, json=json_body)
+    try:
+        resp = await client.post(path, params=p, json=json_body)
+    except httpx.TimeoutException as e:
+        raise HTTPException(status_code=504, detail="Nessie request timed out") from e
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail="Nessie request failed") from e
     if resp.status_code >= 400:
         raise HTTPException(status_code=resp.status_code, detail=resp.text[:500])
     return resp.json()
@@ -235,11 +246,15 @@ async def create_customer(customer: Customer):
         return await _nessie_post(client, "/customers", json_body=customer.model_dump())
 
 @app.get("/view-purchases", response_class=HTMLResponse)
-async def view_purchases_html():
+async def view_purchases_html(
+    limit_customers: int = Query(10, ge=1, le=50, description="Max customers to render (demo safety)"),
+    limit_accounts_per_customer: int = Query(3, ge=1, le=20, description="Max accounts per customer (demo safety)"),
+    limit_purchases_per_account: int = Query(25, ge=1, le=200, description="Max purchases per account (demo safety)"),
+):
     try:
         async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
             # 1. Get all customers
-            customers = await _nessie_get(client, "/customers")
+            customers = (await _nessie_get(client, "/customers"))[:limit_customers]
         
             table_rows = ""
         
@@ -248,13 +263,13 @@ async def view_purchases_html():
                 name = f"{customer['first_name']} {customer['last_name']}"
             
                 # 2. Get accounts for this customer
-                accounts = await _nessie_get(client, f"/customers/{c_id}/accounts")
+                accounts = (await _nessie_get(client, f"/customers/{c_id}/accounts"))[:limit_accounts_per_customer]
             
                 for account in accounts:
                     acc_id = account["_id"]
                 
                     # 3. Get purchases for this account
-                    purchases = await _nessie_get(client, f"/accounts/{acc_id}/purchases")
+                    purchases = (await _nessie_get(client, f"/accounts/{acc_id}/purchases"))[:limit_purchases_per_account]
                 
                     for p in purchases:
                         # Building the HTML table row
@@ -309,11 +324,14 @@ async def view_purchases_html():
         return HTMLResponse(content=f"<h1>Error: {str(e)}</h1>", status_code=500)
 
 @app.get("/customers-dashboard", response_class=HTMLResponse)
-async def get_interactive_dashboard():
+async def get_interactive_dashboard(
+    limit_customers: int = Query(10, ge=1, le=50, description="Max customers to render (demo safety)"),
+    limit_purchases_per_customer: int = Query(50, ge=1, le=300, description="Max purchases per customer (demo safety)"),
+):
     try:
         async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
             # 1. Fetch Customers
-            customers = await _nessie_get(client, "/customers")
+            customers = (await _nessie_get(client, "/customers"))[:limit_customers]
             # 2. Fetch Merchants (to map names)
             merch_data = await _nessie_get(client, "/merchants")
             merchants = {m["_id"]: m["name"] for m in merch_data}
@@ -321,6 +339,12 @@ async def get_interactive_dashboard():
         accordion_html = ""
 
         async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+            sem = asyncio.Semaphore(8)
+
+            async def _get_purchases_for_account(acc_id: str):
+                async with sem:
+                    return await _nessie_get(client, f"/accounts/{acc_id}/purchases")
+
             for cust in customers:
                 c_id = cust["_id"]
                 full_name = f"{cust['first_name']} {cust['last_name']}"
@@ -329,9 +353,14 @@ async def get_interactive_dashboard():
                 acc_res = await _nessie_get(client, f"/customers/{c_id}/accounts")
                 all_purchases = []
                 if acc_res:
-                    for acc in acc_res:
-                        p_res = await _nessie_get(client, f"/accounts/{acc['_id']}/purchases")
-                        all_purchases.extend(p_res)
+                    tasks = [_get_purchases_for_account(acc["_id"]) for acc in acc_res]
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+                    for r in results:
+                        if isinstance(r, Exception):
+                            continue
+                        all_purchases.extend(r)
+
+                all_purchases = all_purchases[:limit_purchases_per_customer]
 
                 # Build the Purchase Rows for this specific customer
                 purchase_rows = ""
@@ -397,57 +426,71 @@ async def get_interactive_dashboard():
         return HTMLResponse(content=f"Error: {e}", status_code=500)
 
 @app.get("/transactions-by-customer")
-async def get_customers_with_transactions(name: Optional[str] = Query(None, description="Filter by customer name")):
-    try:
-        async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
-            # 1. Fetch Merchants (for mapping)
-            merch_data = await _nessie_get(client, "/merchants")
-            merchants = {m["_id"]: m["name"] for m in merch_data}
+async def get_customers_with_transactions(
+    name: Optional[str] = Query(None, description="Filter by customer name"),
+    limit_customers: int = Query(20, ge=1, le=100, description="Max customers to include (demo safety)"),
+    limit_purchases_per_customer: int = Query(100, ge=1, le=500, description="Max purchases per customer (demo safety)"),
+):
+    final_list = []
 
-            # 2. Fetch Customers
-            customers = await _nessie_get(client, "/customers")
-        
-        final_list = []
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+        # 1. Fetch Merchants (for mapping)
+        merch_data = await _nessie_get(client, "/merchants")
+        merchants = {m["_id"]: m["name"] for m in merch_data}
 
-        async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
-            for cust in customers:
-                full_name = f"{cust['first_name']} {cust['last_name']}"
-                
-                # --- FILTER LOGIC ---
-                # If a name query is provided, skip customers that don't match
-                if name and name.lower() not in full_name.lower():
-                    continue
+        # 2. Fetch Customers
+        customers = await _nessie_get(client, "/customers")
 
-                c_id = cust["_id"]
-                
-                # Fetch Accounts and Purchases
-                acc_res = await _nessie_get(client, f"/customers/{c_id}/accounts")
-                
-                customer_purchases = []
-                if acc_res:
-                    for acc in acc_res:
-                        p_res = await _nessie_get(client, f"/accounts/{acc['_id']}/purchases")
-                        for p in p_res:
-                            customer_purchases.append(
-                                {
-                                    "purchase_id": p.get("_id"),
-                                    "merchant_name": merchants.get(p.get("merchant_id"), "Unknown"),
-                                    "description": p.get("description"),
-                                    "amount": p.get("amount"),
-                                    "date": p.get("purchase_date"),
-                                }
-                            )
+        sem = asyncio.Semaphore(10)
 
-                final_list.append(
-                    {
-                        "name": full_name,
-                        "customer_id": c_id,
-                        "transaction_count": len(customer_purchases),
-                        "transactions": customer_purchases,
-                    }
-                )
+        async def _get_purchases_for_account(acc_id: str):
+            async with sem:
+                return await _nessie_get(client, f"/accounts/{acc_id}/purchases")
 
-        return final_list
+        included = 0
+        for cust in customers:
+            full_name = f"{cust['first_name']} {cust['last_name']}"
 
-    except Exception as e:
-        return {"error": str(e)}
+            # If a name query is provided, skip customers that don't match
+            if name and name.lower() not in full_name.lower():
+                continue
+
+            c_id = cust["_id"]
+
+            # Fetch Accounts and Purchases
+            acc_res = await _nessie_get(client, f"/customers/{c_id}/accounts")
+
+            customer_purchases = []
+            if acc_res:
+                tasks = [_get_purchases_for_account(acc["_id"]) for acc in acc_res]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+                for p_res in results:
+                    if isinstance(p_res, Exception):
+                        continue
+                    for p in p_res:
+                        customer_purchases.append(
+                            {
+                                "purchase_id": p.get("_id"),
+                                "merchant_name": merchants.get(p.get("merchant_id"), "Unknown"),
+                                "description": p.get("description"),
+                                "amount": p.get("amount"),
+                                "date": p.get("purchase_date"),
+                            }
+                        )
+
+            customer_purchases = customer_purchases[:limit_purchases_per_customer]
+
+            final_list.append(
+                {
+                    "name": full_name,
+                    "customer_id": c_id,
+                    "transaction_count": len(customer_purchases),
+                    "transactions": customer_purchases,
+                }
+            )
+
+            included += 1
+            if included >= limit_customers:
+                break
+
+    return final_list
