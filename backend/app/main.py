@@ -1,21 +1,18 @@
+from __future__ import annotations
+
+import os
 from pathlib import Path
-from .savings.solana_service import SolanaService
-from .savings.schema.models import (
-    CreateWalletRequest,
-    WalletResponse,
-    TransferRequest,
-    TransferResponse,
-    BalanceResponse,
-)
+from typing import Any, Optional
+
+import httpx
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
 from fastapi.responses import HTMLResponse
-import requests
 from pydantic import BaseModel
-import httpx
-from dotenv import load_dotenv 
-import os
+
+from .savings.schema.models import BalanceResponse, CreateWalletRequest, TransferRequest, TransferResponse, WalletResponse
+from .savings.solana_service import SolanaService
 
 from .ai.router import router as ai_router
 
@@ -25,8 +22,6 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / ".env")
 app = FastAPI(title="FinWise API")
 
 app.include_router(ai_router)
-# Initialize Solana service
-solana_service = SolanaService()
 
 # Configure CORS to allow frontend requests
 app.add_middleware(
@@ -42,10 +37,48 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Replace with your actual API key from your Nessie profile
-load_dotenv()
-NESSIE_API_KEY = os.getenv("NESSIE_API_KEY")
 BASE_URL = "http://api.nessieisreal.com"
+NESSIE_TIMEOUT_S = float(os.getenv("NESSIE_TIMEOUT_S", "10"))
+
+
+def _require_nessie_key() -> str:
+    # Read from env at call-time so local `export NESSIE_API_KEY=...` works without restarting.
+    key = os.getenv("NESSIE_API_KEY", "").strip()
+    if not key:
+        raise HTTPException(status_code=500, detail="NESSIE_API_KEY is not configured")
+    return key
+
+
+async def _nessie_get(client: httpx.AsyncClient, path: str, *, params: Optional[dict[str, Any]] = None) -> Any:
+    key = _require_nessie_key()
+    p = {"key": key}
+    if params:
+        p.update(params)
+    resp = await client.get(path, params=p)
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text[:500])
+    return resp.json()
+
+
+async def _nessie_post(
+    client: httpx.AsyncClient, path: str, *, json_body: Any, params: Optional[dict[str, Any]] = None
+) -> Any:
+    key = _require_nessie_key()
+    p = {"key": key}
+    if params:
+        p.update(params)
+    resp = await client.post(path, params=p, json=json_body)
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text[:500])
+    return resp.json()
+
+
+def _get_solana_service() -> SolanaService:
+    # Lazy init so missing keypair doesn't crash API import/startup.
+    if not hasattr(app.state, "solana_service"):
+        app.state.solana_service = SolanaService()
+    return app.state.solana_service
+
 
 @app.get("/")
 def root():
@@ -58,12 +91,13 @@ def health():
 @app.post("/wallets", response_model=WalletResponse)
 def create_user_wallet(request: CreateWalletRequest):
     """Create a new Solana wallet for a user"""
+    solana_service = _get_solana_service()
     try:
         # Check if wallet already exists for this user
         existing_wallet = solana_service.get_user_wallet(request.user_id)
         if existing_wallet:
             raise HTTPException(status_code=409, detail=f"Wallet already exists for user {request.user_id}")
-        
+
         wallet_info = solana_service.create_user_wallet(request.user_id)
         return WalletResponse(**wallet_info)
     except HTTPException:
@@ -74,6 +108,7 @@ def create_user_wallet(request: CreateWalletRequest):
 @app.get("/wallets/{user_id}", response_model=WalletResponse)
 def get_user_wallet(user_id: str):
     """Get user's wallet information"""
+    solana_service = _get_solana_service()
     wallet_info = solana_service.get_user_wallet(user_id)
     if not wallet_info:
         raise HTTPException(status_code=404, detail="Wallet not found for user")
@@ -82,6 +117,7 @@ def get_user_wallet(user_id: str):
 @app.post("/transfer", response_model=TransferResponse)
 def transfer_sol_to_user(request: TransferRequest):
     """Transfer SOL from bank's wallet to user's wallet"""
+    solana_service = _get_solana_service()
     # First, get the user's wallet
     wallet_info = solana_service.get_user_wallet(request.user_id)
     if not wallet_info:
@@ -99,6 +135,7 @@ def transfer_sol_to_user(request: TransferRequest):
 @app.get("/wallets/main/balance", response_model=BalanceResponse)
 def get_main_wallet_balance():
     """Get the balance of the main wallet"""
+    solana_service = _get_solana_service()
     balance = solana_service.get_main_wallet_balance()
     return BalanceResponse(
         wallet_address="main_wallet",
@@ -109,6 +146,7 @@ def get_main_wallet_balance():
 @app.get("/wallets/{user_id}/balance", response_model=BalanceResponse)
 def get_user_wallet_balance(user_id: str):
     """Get the SOL balance of a user's wallet"""
+    solana_service = _get_solana_service()
     wallet_info = solana_service.get_user_wallet(user_id)
     if not wallet_info:
         raise HTTPException(status_code=404, detail="Wallet not found for user")
@@ -118,30 +156,27 @@ def get_user_wallet_balance(user_id: str):
         wallet_address=wallet_info["wallet_address"],
         balance_sol=balance
     )
+
+
 # --- Integrated Account Endpoints ---
 
 @app.get("/accounts")
 async def get_all_accounts():
     """Calls Nessie to fetch all accounts."""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{BASE_URL}/accounts?key={NESSIE_API_KEY}")
-        return response.json()
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+        return await _nessie_get(client, "/accounts")
 
 @app.get("/accounts/{account_id}")
 async def get_account(account_id: str):
     """Calls Nessie to fetch account details by ID."""
-    async with httpx.AsyncClient() as client:
-        url = f"{BASE_URL}/accounts/{account_id}?key={NESSIE_API_KEY}"
-        response = await client.get(url)
-        return response.json()
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+        return await _nessie_get(client, f"/accounts/{account_id}")
 
 @app.get("/customers/{customer_id}/accounts")
 async def get_accounts_by_customer(customer_id: str):
     """Calls Nessie to fetch all accounts belonging to a specific customer."""
-    async with httpx.AsyncClient() as client:
-        url = f"{BASE_URL}/customers/{customer_id}/accounts?key={NESSIE_API_KEY}"
-        response = await client.get(url)
-        return response.json()
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+        return await _nessie_get(client, f"/customers/{customer_id}/accounts")
 
 # Model based on Nessie Schema
 class AccountCreate(BaseModel):
@@ -156,27 +191,9 @@ async def create_customer_account(customer_id: str, account: AccountCreate):
     """
     Creates an account for the customer with the specified id.
     """
-    url = f"{BASE_URL}/customers/{customer_id}/accounts?key={NESSIE_API_KEY}"
-    
-    async with httpx.AsyncClient() as client:
-        # Nessie expects application/json content type
-        response = await client.post(
-            url, 
-            json=account.dict(exclude_unset=True)
-        )
-        
-        if response.status_code == 201:
-            return {
-                "code": 201,
-                "message": "Account created",
-                "objectCreated": response.json()
-            }
-        
-        # Handle errors (e.g., 404 if customer_id doesn't exist)
-        raise HTTPException(
-            status_code=response.status_code, 
-            detail=response.json().get("message", "Error creating account")
-        )
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+        data = await _nessie_post(client, f"/customers/{customer_id}/accounts", json_body=account.model_dump(exclude_unset=True))
+        return {"code": 201, "message": "Account created", "objectCreated": data}
 
 # --- Schema Models ---
 class Address(BaseModel):
@@ -196,65 +213,52 @@ class Customer(BaseModel):
 @app.get("/accounts/{account_id}/customer", tags=["Customers"])
 async def get_customer_by_account(account_id: str):
     """Get the customer that owns the specified account."""
-    async with httpx.AsyncClient() as client:
-        url = f"{BASE_URL}/accounts/{account_id}/customer?key={NESSIE_API_KEY}"
-        response = await client.get(url)
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail="Customer not found for this account")
-        return response.json()
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+        return await _nessie_get(client, f"/accounts/{account_id}/customer")
 
 @app.get("/customers", tags=["Customers"])
 async def get_all_customers():
     """Get all customers."""
-    async with httpx.AsyncClient() as client:
-        url = f"{BASE_URL}/customers?key={NESSIE_API_KEY}"
-        response = await client.get(url)
-        return response.json()
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+        return await _nessie_get(client, "/customers")
 
 @app.get("/customers/{id}", tags=["Customers"])
 async def get_customer_by_id(id: str):
     """Get customer by id."""
-    async with httpx.AsyncClient() as client:
-        url = f"{BASE_URL}/customers/{id}?key={NESSIE_API_KEY}"
-        response = await client.get(url)
-        if response.status_code != 200:
-            raise HTTPException(status_code=404, detail="Customer not found")
-        return response.json()
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+        return await _nessie_get(client, f"/customers/{id}")
 
 @app.post("/customers", status_code=201, tags=["Customers"])
 async def create_customer(customer: Customer):
     """Create a new customer."""
-    async with httpx.AsyncClient() as client:
-        url = f"{BASE_URL}/customers?key={NESSIE_API_KEY}"
-        response = await client.post(url, json=customer.dict())
-        if response.status_code != 201:
-            raise HTTPException(status_code=response.status_code, detail="Failed to create customer")
-        return response.json()
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+        return await _nessie_post(client, "/customers", json_body=customer.model_dump())
 
 @app.get("/view-purchases", response_class=HTMLResponse)
 async def view_purchases_html():
     try:
-        # 1. Get all customers
-        customers = requests.get(f"{BASE_URL}/customers?key={NESSIE_API_KEY}").json()
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+            # 1. Get all customers
+            customers = await _nessie_get(client, "/customers")
         
-        table_rows = ""
+            table_rows = ""
         
-        for customer in customers:
-            c_id = customer['_id']
-            name = f"{customer['first_name']} {customer['last_name']}"
+            for customer in customers:
+                c_id = customer["_id"]
+                name = f"{customer['first_name']} {customer['last_name']}"
             
-            # 2. Get accounts for this customer
-            accounts = requests.get(f"{BASE_URL}/customers/{c_id}/accounts?key={NESSIE_API_KEY}").json()
+                # 2. Get accounts for this customer
+                accounts = await _nessie_get(client, f"/customers/{c_id}/accounts")
             
-            for account in accounts:
-                acc_id = account['_id']
+                for account in accounts:
+                    acc_id = account["_id"]
                 
-                # 3. Get purchases for this account
-                purchases = requests.get(f"{BASE_URL}/accounts/{acc_id}/purchases?key={NESSIE_API_KEY}").json()
+                    # 3. Get purchases for this account
+                    purchases = await _nessie_get(client, f"/accounts/{acc_id}/purchases")
                 
-                for p in purchases:
-                    # Building the HTML table row
-                    table_rows += f"""
+                    for p in purchases:
+                        # Building the HTML table row
+                        table_rows += f"""
                     <tr>
                         <td>{name}</td>
                         <td>{account['type']}</td>
@@ -302,37 +306,38 @@ async def view_purchases_html():
         return HTMLResponse(content=html_content)
 
     except Exception as e:
-        return f"<h1>Error: {str(e)}</h1>"
+        return HTMLResponse(content=f"<h1>Error: {str(e)}</h1>", status_code=500)
 
 @app.get("/customers-dashboard", response_class=HTMLResponse)
 async def get_interactive_dashboard():
     try:
-        # 1. Fetch Customers
-        customers = requests.get(f"{BASE_URL}/customers?key={NESSIE_API_KEY}").json()
-        
-        # 2. Fetch Merchants (to map names)
-        merch_data = requests.get(f"{BASE_URL}/merchants?key={NESSIE_API_KEY}").json()
-        merchants = {m['_id']: m['name'] for m in merch_data}
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+            # 1. Fetch Customers
+            customers = await _nessie_get(client, "/customers")
+            # 2. Fetch Merchants (to map names)
+            merch_data = await _nessie_get(client, "/merchants")
+            merchants = {m["_id"]: m["name"] for m in merch_data}
 
         accordion_html = ""
 
-        for cust in customers:
-            c_id = cust['_id']
-            full_name = f"{cust['first_name']} {cust['last_name']}"
-            
-            # Fetch Accounts and then Purchases
-            acc_res = requests.get(f"{BASE_URL}/customers/{c_id}/accounts?key={NESSIE_API_KEY}").json()
-            all_purchases = []
-            if acc_res:
-                for acc in acc_res:
-                    p_res = requests.get(f"{BASE_URL}/accounts/{acc['_id']}/purchases?key={NESSIE_API_KEY}").json()
-                    all_purchases.extend(p_res)
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+            for cust in customers:
+                c_id = cust["_id"]
+                full_name = f"{cust['first_name']} {cust['last_name']}"
+                
+                # Fetch Accounts and then Purchases
+                acc_res = await _nessie_get(client, f"/customers/{c_id}/accounts")
+                all_purchases = []
+                if acc_res:
+                    for acc in acc_res:
+                        p_res = await _nessie_get(client, f"/accounts/{acc['_id']}/purchases")
+                        all_purchases.extend(p_res)
 
-            # Build the Purchase Rows for this specific customer
-            purchase_rows = ""
-            for p in all_purchases:
-                m_name = merchants.get(p.get('merchant_id'), "Unknown")
-                purchase_rows += f"""
+                # Build the Purchase Rows for this specific customer
+                purchase_rows = ""
+                for p in all_purchases:
+                    m_name = merchants.get(p.get("merchant_id"), "Unknown")
+                    purchase_rows += f"""
                     <tr>
                         <td>{p['purchase_date']}</td>
                         <td>{m_name}</td>
@@ -341,8 +346,8 @@ async def get_interactive_dashboard():
                     </tr>
                 """
 
-            # Wrap in an expandable section
-            accordion_html += f"""
+                # Wrap in an expandable section
+                accordion_html += f"""
             <div class="customer-section">
                 <button class="accordion" onclick="toggleAccordion(this)">
                     {full_name} <span class="count">({len(all_purchases)} Transactions)</span>
@@ -394,47 +399,53 @@ async def get_interactive_dashboard():
 @app.get("/transactions-by-customer")
 async def get_customers_with_transactions(name: Optional[str] = Query(None, description="Filter by customer name")):
     try:
-        # 1. Fetch Merchants (for mapping)
-        merch_data = requests.get(f"{BASE_URL}/merchants?key={NESSIE_API_KEY}").json()
-        merchants = {m['_id']: m['name'] for m in merch_data}
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+            # 1. Fetch Merchants (for mapping)
+            merch_data = await _nessie_get(client, "/merchants")
+            merchants = {m["_id"]: m["name"] for m in merch_data}
 
-        # 2. Fetch Customers
-        customers = requests.get(f"{BASE_URL}/customers?key={NESSIE_API_KEY}").json()
+            # 2. Fetch Customers
+            customers = await _nessie_get(client, "/customers")
         
         final_list = []
 
-        for cust in customers:
-            full_name = f"{cust['first_name']} {cust['last_name']}"
-            
-            # --- FILTER LOGIC ---
-            # If a name query is provided, skip customers that don't match
-            if name and name.lower() not in full_name.lower():
-                continue
+        async with httpx.AsyncClient(base_url=BASE_URL, timeout=NESSIE_TIMEOUT_S) as client:
+            for cust in customers:
+                full_name = f"{cust['first_name']} {cust['last_name']}"
+                
+                # --- FILTER LOGIC ---
+                # If a name query is provided, skip customers that don't match
+                if name and name.lower() not in full_name.lower():
+                    continue
 
-            c_id = cust['_id']
-            
-            # Fetch Accounts and Purchases
-            acc_res = requests.get(f"{BASE_URL}/customers/{c_id}/accounts?key={NESSIE_API_KEY}").json()
-            
-            customer_purchases = []
-            if acc_res:
-                for acc in acc_res:
-                    p_res = requests.get(f"{BASE_URL}/accounts/{acc['_id']}/purchases?key={NESSIE_API_KEY}").json()
-                    for p in p_res:
-                        customer_purchases.append({
-                            "purchase_id": p.get("_id"),
-                            "merchant_name": merchants.get(p.get('merchant_id'), "Unknown"),
-                            "description": p.get('description'),
-                            "amount": p.get('amount'),
-                            "date": p.get('purchase_date'),
-                        })
+                c_id = cust["_id"]
+                
+                # Fetch Accounts and Purchases
+                acc_res = await _nessie_get(client, f"/customers/{c_id}/accounts")
+                
+                customer_purchases = []
+                if acc_res:
+                    for acc in acc_res:
+                        p_res = await _nessie_get(client, f"/accounts/{acc['_id']}/purchases")
+                        for p in p_res:
+                            customer_purchases.append(
+                                {
+                                    "purchase_id": p.get("_id"),
+                                    "merchant_name": merchants.get(p.get("merchant_id"), "Unknown"),
+                                    "description": p.get("description"),
+                                    "amount": p.get("amount"),
+                                    "date": p.get("purchase_date"),
+                                }
+                            )
 
-            final_list.append({
-                "name": full_name,
-                "customer_id": c_id,
-                "transaction_count": len(customer_purchases),
-                "transactions": customer_purchases
-            })
+                final_list.append(
+                    {
+                        "name": full_name,
+                        "customer_id": c_id,
+                        "transaction_count": len(customer_purchases),
+                        "transactions": customer_purchases,
+                    }
+                )
 
         return final_list
 
