@@ -1,0 +1,150 @@
+[
+    {
+        "name": "Sai Puneeth Bonagiri",
+        "customer_id": "697529cc95150878eafe81d8",
+        "account_ids": [
+            "69752af795150878eafe81e1",
+            "6975524395150878eafeb890"
+        ]
+    },
+    {
+        "name": "Harper Davis",
+        "customer_id": "69754af195150878eafeb47a",
+        "account_ids": [
+            "6975524395150878eafeb891"
+        ]
+    },
+    {
+        "name": "Olivia Johnson",
+        "customer_id": "69754af195150878eafeb47b",
+        "account_ids": [
+            "6975524395150878eafeb892"
+        ]
+    },
+    {
+        "name": "Sebastian Martinez",
+        "customer_id": "69754af195150878eafeb47c",
+        "account_ids": [
+            "6975524395150878eafeb893"
+        ]
+    },
+    {
+        "name": "Ethan Smith",
+        "customer_id": "69754af295150878eafeb47d",
+        "account_ids": [
+            "6975524495150878eafeb894"
+        ]
+    },
+    {
+        "name": "Emma Gonzalez",
+        "customer_id": "69754af295150878eafeb47e",
+        "account_ids": [
+            "6975524495150878eafeb895"
+        ]
+    },
+    {
+        "name": "Aria Thomas",
+        "customer_id": "69754af295150878eafeb47f",
+        "account_ids": [
+            "6975524495150878eafeb896"
+        ]
+    },
+    {
+        "name": "Zoe Wilson",
+        "customer_id": "69754af295150878eafeb480",
+        "account_ids": [
+            "6975524495150878eafeb897"
+        ]
+    },
+    {
+        "name": "Mateo Moore",
+        "customer_id": "69754af395150878eafeb481",
+        "account_ids": [
+            "6975524495150878eafeb898"
+        ]
+    },
+    {
+        "name": "Chloe Jones",
+        "customer_id": "69754af395150878eafeb482",
+        "account_ids": [
+            "6975524495150878eafeb899"
+        ]
+    },
+    {
+        "name": "Liam Brown",
+        "customer_id": "69754af395150878eafeb483",
+        "account_ids": [
+            "6975524495150878eafeb89a"
+        ]
+    },
+    {
+        "name": "Daniel Jackson",
+        "customer_id": "69754af395150878eafeb484",
+        "account_ids": [
+            "6975524495150878eafeb89b"
+        ]
+    },
+    {
+        "name": "Layla Lopez",
+        "customer_id": "69754af395150878eafeb485",
+        "account_ids": [
+            "6975524595150878eafeb89c"
+        ]
+    },
+    {
+        "name": "Isabella Garcia",
+        "customer_id": "69754af495150878eafeb486",
+        "account_ids": [
+            "6975524595150878eafeb89d"
+        ]
+    },
+    {
+        "name": "Mia Williams",
+        "customer_id": "69754af495150878eafeb487",
+        "account_ids": [
+            "6975524595150878eafeb89e"
+        ]
+    },
+    {
+        "name": "Noah Rodriguez",
+        "customer_id": "69754af495150878eafeb488",
+        "account_ids": [
+            "6975524595150878eafeb89f"
+        ]
+    },
+    {
+        "name": "James Miller",
+        "customer_id": "69754af495150878eafeb489",
+        "account_ids": [
+            "6975524595150878eafeb8a0"
+        ]
+    },
+    {
+        "name": "Julian Taylor",
+        "customer_id": "69754af595150878eafeb48a",
+        "account_ids": [
+            "6975524595150878eafeb8a1"
+        ]
+    },
+    {
+        "name": "Lucas Martin",
+        "customer_id": "69754af595150878eafeb48b",
+        "account_ids": [
+            "6975524595150878eafeb8a2"
+        ]
+    },
+    {
+        "name": "Sophia Anderson",
+        "customer_id": "69754af595150878eafeb48c",
+        "account_ids": [
+            "6975524595150878eafeb8a3"
+        ]
+    },
+    {
+        "name": "Alexander Hernandez",
+        "customer_id": "69754af595150878eafeb48d",
+        "account_ids": [
+            "6975524695150878eafeb8a4"
+        ]
+    }
+]

@@ -7,7 +7,7 @@ from .savings.schema.models import (
     BalanceResponse,
 )
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Path
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from fastapi.responses import HTMLResponse
@@ -434,3 +434,50 @@ async def get_customers_with_transactions(name: Optional[str] = Query(None, desc
 
     except Exception as e:
         return {"error": str(e)}
+
+class SimplePurchaseRequest(BaseModel):
+    amount: float
+
+@app.post("/accounts/{account_id}/simple-purchase")
+async def create_simple_purchase(
+    request: SimplePurchaseRequest, 
+    account_id: str = Path(...)
+):
+    async with httpx.AsyncClient() as client:
+        # 1. Fetch Merchants to get a valid ID (Frontend didn't send one)
+        try:
+            merch_resp = await client.get(f"{BASE_URL}/merchants?key={NESSIE_API_KEY}")
+            merch_resp.raise_for_status()
+            merchants = merch_resp.json()
+            
+            if not merchants:
+                raise HTTPException(status_code=404, detail="No merchants found in Nessie database.")
+            
+            # Pick a random merchant for this transaction
+            selected_merchant = random.choice(merchants)
+            
+        except httpx.HTTPStatusError:
+            raise HTTPException(status_code=500, detail="Failed to fetch merchants from Nessie.")
+
+        # 2. Build the full payload internally
+        full_payload = {
+            "merchant_id": selected_merchant["_id"],
+            "medium": "balance",
+            "purchase_date": datetime.now().strftime("%Y-%m-%d"),
+            "amount": request.amount,
+            "status": "completed",
+            "description": f"Purchase at {selected_merchant['name']}"
+        }
+
+        # 3. Post to Nessie
+        url = f"{BASE_URL}/accounts/{account_id}/purchases?key={NESSIE_API_KEY}"
+        response = await client.post(url, json=full_payload)
+
+        if response.status_code != 201:
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+
+        return {
+            "message": "Transaction created by Backend",
+            "merchant_used": selected_merchant["name"],
+            "nessie_response": response.json()
+        }
