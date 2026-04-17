@@ -21,7 +21,7 @@ import random
 import math
 from datetime import datetime
 
-app = FastAPI(title="FinWise API")
+app = FastAPI(title="SpareSense API")
 
 # Load local .env if present so developers don't need to manually export vars.
 load_dotenv(dotenv_path=Path(__file__).resolve().parents[2] / ".env")
@@ -32,8 +32,7 @@ app.include_router(ai_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://finwise-seven-tau.vercel.app",  # Your production frontend
-        "https://finwise-9jic84wg3-himanshu-pss-projects.vercel.app",  # Alternative Vercel URL
+        "https://sparesense.vercel.app/",  # Your production frontend
         "http://localhost:5173",  # Local development
         "http://localhost:5174",  # Alternative local port
         "http://127.0.0.1:5173",
