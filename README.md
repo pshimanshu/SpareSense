@@ -1,6 +1,6 @@
-# 💸 FinWise — Smart Spending & Micro-Savings Assistant
+# 💸 SpareSense — Smart Spending & Micro-Savings Assistant
 
-FinWise is a hackathon project that helps users **understand their spending, learn better financial habits, and save money automatically** — all in a fun, low-friction way.
+SpareSense is a hackathon project that helps users **understand their spending, learn better financial habits, and save money automatically** — all in a fun, low-friction way.
 
 Built for the **Capital One: Best Financial Hack** challenge.
 
@@ -8,7 +8,7 @@ Built for the **Capital One: Best Financial Hack** challenge.
 
 ## 🚀 Project Overview
 
-FinWise combines transaction analysis, AI insights, gamification, and micro-savings to help users make smarter financial decisions.
+SpareSense combines transaction analysis, AI insights, gamification, and micro-savings to help users make smarter financial decisions.
 
 ### Core Features
 
@@ -50,7 +50,7 @@ FinWise combines transaction analysis, AI insights, gamification, and micro-savi
 ---
 
 ## 📁 Project Structure
-finwise/  
+sparesense/  
 ├─ backend/ # FastAPI backend (API, AI, savings logic)  
 ├─ frontend/ # React frontend (UI & dashboard)  
 └─ README.md  

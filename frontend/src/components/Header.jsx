@@ -10,7 +10,7 @@ export default function Header({ user, demoMode, onToggleDemo }) {
             <DollarSign className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">FinWise</h1>
+            <h1 className="text-2xl font-bold">SpareSense</h1>
             <p className="text-xs text-gray-400">AI Financial Coach</p>
           </div>
         </div>

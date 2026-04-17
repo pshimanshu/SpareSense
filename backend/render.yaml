@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: finwise-backend
+    name: sparesense-backend
     runtime: python
     # Render runs commands from the repo root by default, so use explicit paths.
     buildCommand: python -m pip install -r backend/requirements.txt
